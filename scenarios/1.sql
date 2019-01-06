@@ -48,7 +48,7 @@ BEGIN;
     VALUES ('Добрый день!
 Рассмотрите, пожалуйста, мою кандидатуру
 С уважением, Мария')
-    RETURNING id
+    RETURNING message_id
   ) INSERT INTO application(
     resume_id,
     vacancy_id,
@@ -56,42 +56,42 @@ BEGIN;
   ) VALUES (
     3,
     4,
-    (SELECT id from created_message)
+    (SELECT message_id from created_message)
   );
 END;
 
 -- 6. Версия прошлой транзакции, где что-то пошло не так.
 -- Сообщение не нужно и в базе не сохраняется.
-SELECT COUNT(id) AS before_count FROM message;
+SELECT COUNT(message_id) AS before_count FROM message;
 
 BEGIN;
   WITH created_message AS (
     INSERT INTO message(text)
     VALUES ('Это сообщение не должно оказаться в базе')
-    RETURNING id
+    RETURNING message_id
   ) INSERT INTO application(
     resume_id,
     message_id
   ) VALUES (
     3,
-    (SELECT id from created_message)
+    (SELECT message_id from created_message)
   );
 END;
 
-SELECT COUNT(id) AS after_count FROM message;
+SELECT COUNT(message_id) AS after_count FROM message;
 
--- 7. Мы — фирма Лютик (id = 2) и хотим посмотреть все отклики на наши вакансии.
+-- 7. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
 SELECT resume_id, message.text
-  FROM application JOIN vacancy ON application.vacancy_id = vacancy.id
-         JOIN message ON application.message_id = message.id
+  FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
+         JOIN message ON application.message_id = message.message_id
  WHERE vacancy.employer_id = 2;
 
--- 8. Мы — фирма Ромашка (id = 1) и хотим посмотреть все отклики на наши
+-- 8. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
 -- вакансии, где параметры резюме не совпадают с параметрами вакансии.
 SELECT application.resume_id, application.vacancy_id, message.text
-  FROM application JOIN vacancy ON application.vacancy_id = vacancy.id
-         JOIN message ON application.message_id = message.id
-         JOIN resume ON resume.id = application.resume_id
+  FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
+         JOIN message ON application.message_id = message.message_id
+         JOIN resume ON resume.resume_id = application.resume_id
  WHERE vacancy.employer_id = 1
    AND (resume.city != vacancy.city OR
         resume.experience_years < vacancy.experience_years OR

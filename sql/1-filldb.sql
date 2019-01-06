@@ -1,17 +1,17 @@
 TRUNCATE employer CASCADE;
-ALTER SEQUENCE employer_id_seq RESTART WITH 1;
+ALTER SEQUENCE employer_employer_id_seq RESTART WITH 1;
 
 TRUNCATE applicant CASCADE;
-ALTER SEQUENCE applicant_id_seq RESTART WITH 1;
+ALTER SEQUENCE applicant_applicant_id_seq RESTART WITH 1;
 
 TRUNCATE employer CASCADE;
-ALTER SEQUENCE resume_id_seq RESTART WITH 1;
+ALTER SEQUENCE resume_resume_id_seq RESTART WITH 1;
 
 TRUNCATE employer CASCADE;
-ALTER SEQUENCE vacancy_id_seq RESTART WITH 1;
+ALTER SEQUENCE vacancy_vacancy_id_seq RESTART WITH 1;
 
 TRUNCATE application CASCADE;
-ALTER SEQUENCE application_id_seq RESTART WITH 1;
+ALTER SEQUENCE application_application_id_seq RESTART WITH 1;
 
 INSERT INTO employer(title)
 VALUES
