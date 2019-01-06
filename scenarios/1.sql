@@ -55,8 +55,9 @@ INSERT INTO resume (
 WITH created_application AS (
   INSERT INTO application(
     resume_id,
-    vacancy_id
-  ) VALUES (6, 4)
+    vacancy_id,
+    status
+  ) VALUES (6, 4, 'NOT_RESPONDED')
   RETURNING application_id
 ) INSERT INTO message (
   application_id,
@@ -73,10 +74,10 @@ WITH created_application AS (
 );
 
 -- 8. Мы — Лютик (employer_id = 2) и хотим посмотреть наши вакансии
--- с количеством откликов для каждой.
+-- с количеством неотвеченных откликов для каждой.
 SELECT vacancy_id, COUNT(application_id)
   FROM application JOIN vacancy USING (vacancy_id)
- WHERE vacancy.employer_id = 2
+ WHERE vacancy.employer_id = 2 AND status = 'NOT_RESPONDED'
  GROUP BY vacancy_id
 ;
 
@@ -86,7 +87,7 @@ SELECT application_id, applicant.name, experience_years, salary, city.name
   FROM application JOIN resume USING (resume_id)
          JOIN applicant USING (applicant_id)
          JOIN city USING (city_id)
- WHERE vacancy_id = 4
+ WHERE vacancy_id = 4 AND status = 'NOT_RESPONDED'
 ;
 
 -- 10. Мы — Лютик (employer_id = 2) и хотим посмотреть отклики на вакансию
@@ -96,7 +97,7 @@ SELECT application_id, applicant.name, experience_years, resume.salary
          JOIN resume USING (resume_id)
          JOIN expyears_translation USING (expyears_key)
          JOIN applicant USING (applicant_id)
- WHERE vacancy_id = 4 AND
+ WHERE vacancy_id = 4 AND status = 'NOT_RESPONDED' AND
        resume.city_id = vacancy.city_id AND
        experience_years <@ expyears_value AND
        resume.schedule = vacancy.schedule AND
@@ -116,7 +117,7 @@ BEGIN
              JOIN resume USING (resume_id)
              JOIN expyears_translation USING (expyears_key)
              JOIN applicant USING (applicant_id)
-     WHERE vacancy_id = vac_id AND
+     WHERE vacancy_id = vac_id AND status = 'NOT_RESPONDED' AND
            resume.city_id = vacancy.city_id AND
            experience_years <@ expyears_value AND
            resume.schedule = vacancy.schedule AND
@@ -138,6 +139,8 @@ https://lyutik/testovoe_zadanie
 -- 
 С уважением, Лютиков Л. Л.'
     );
+    UPDATE application SET status = 'RESPONDED'
+     WHERE application_id = matching.application_id;
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;

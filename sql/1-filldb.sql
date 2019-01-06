@@ -106,13 +106,14 @@ INSERT INTO experience(
 
 INSERT INTO application(
   resume_id,
-  vacancy_id
+  vacancy_id,
+  status
 ) VALUES
-    (1, 1),
-    (4, 2),
-    (5, 4),
-    (2, 3),
-    (3, 4)
+    (1, 1, 'INTERVIEW_INVITED'),
+    (4, 2, 'REJECTED'),
+    (5, 4, 'NOT_RESPONDED'),
+    (2, 3, 'REJECTED'),
+    (3, 4, 'NOT_RESPONDED')
 ;
 
 INSERT INTO message(
