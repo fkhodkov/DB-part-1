@@ -8,7 +8,6 @@ DROP TABLE IF EXISTS expyears_translation CASCADE;
 DROP TABLE IF EXISTS city CASCADE;
 DROP TABLE if EXISTS experience CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
-DROP TYPE IF EXISTS EXPYEARS_T CASCADE;
 DROP TYPE IF EXISTS APPSTATUS_T CASCADE;
 
 CREATE TABLE employer (
@@ -25,16 +24,8 @@ CREATE TYPE SCHEDULE_T AS ENUM (
   'REMOTE'
 );
 
-CREATE TYPE EXPYEARS_T AS ENUM (
-  '0-1',
-  '1-3',
-  '3-6',
-  '6+',
-  'ANY'
-);
-
 CREATE TABLE expyears_translation (
-  expyears_key EXPYEARS_T PRIMARY KEY,
+  expyears_key VARCHAR(16) PRIMARY KEY,
   expyears_value INT4RANGE
 );
 
@@ -58,7 +49,7 @@ CREATE TABLE vacancy (
   title VARCHAR(1000) NOT NULL,
   city_id INTEGER REFERENCES city(city_id) NOT NULL,
   salary INT4RANGE,
-  expyears_key EXPYEARS_T NOT NULL,
+  expyears_key VARCHAR(16) REFERENCES expyears_translation(expyears_key) NOT NULL,
   schedule SCHEDULE_T,
   description TEXT
 );
