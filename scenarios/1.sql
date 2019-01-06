@@ -56,8 +56,8 @@ WITH created_application AS (
   INSERT INTO application(
     resume_id,
     vacancy_id
-  ) VALUES (3, 4)
-           RETURNING application_id
+  ) VALUES (6, 4)
+  RETURNING application_id
 ) INSERT INTO message (
   application_id,
   text,
@@ -66,53 +66,87 @@ WITH created_application AS (
 ) VALUES (
   (SELECT application_id FROM created_application),
   'Добрый день!
-  Рассмотрите, пожалуйста, мою кандидатуру
-  С уважением, Мария',
+Рассмотрите, пожалуйста, мою кандидатуру
+С уважением, Мария',
   TRUE,
   now()
 );
 
--- 8. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
-SELECT resume_id, message.text
+-- 8. Мы — Лютик (employer_id = 2) и хотим посмотреть наши вакансии
+-- с количеством откликов для каждой.
+SELECT vacancy_id, COUNT(application_id)
   FROM application JOIN vacancy USING (vacancy_id)
-         JOIN message USING (application_id)
- WHERE employer_id = 2;
+ WHERE vacancy.employer_id = 2
+ GROUP BY vacancy_id
+;
 
--- 9. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
--- вакансии, где параметры резюме не совпадают с параметрами вакансии.
-SELECT application.application_id
+-- 9. Мы — Лютик (employer_id = 2) и хотим посмотреть отклики на вакансию
+-- Java-программиста (id=4).
+SELECT application_id, applicant.name, experience_years, salary, city.name
+  FROM application JOIN resume USING (resume_id)
+         JOIN applicant USING (applicant_id)
+         JOIN city USING (city_id)
+ WHERE vacancy_id = 4
+;
+
+-- 10. Мы — Лютик (employer_id = 2) и хотим посмотреть отклики на вакансию
+-- Java-программиста (id=4), которые удовлетворяют нашим требованиям.
+SELECT application_id, applicant.name, experience_years, resume.salary
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN resume USING (resume_id)
          JOIN expyears_translation USING (expyears_key)
- WHERE vacancy.employer_id = 1
-   AND (resume.city_id != vacancy.city_id OR
-        NOT experience_years <@ expyears_value OR
-        resume.schedule != vacancy.schedule OR
-        NOT resume.salary && vacancy.salary
-   );
-
--- 10. Посмотреть переписку с соискателем, начиная с последнего сообщения, зная
--- id отклика.
-SELECT text, applicant_to_employer
-  FROM message
- WHERE application_id = 1
- ORDER BY created DESC;
-
--- 11. Комбинация 9 и 10: Ромашка хочет посмотреть переписки со всеми соискателями
--- на свои вакансии, где параметры резюме не совпадают с параметрами вакансии.
-WITH nonmatching_applications AS (
-  SELECT application.application_id
-    FROM application JOIN vacancy USING (vacancy_id)
-           JOIN resume USING (resume_id)
-           JOIN expyears_translation USING (expyears_key)
-   WHERE vacancy.employer_id = 1
-     AND (resume.city_id != vacancy.city_id OR
-          NOT experience_years <@ expyears_value OR
-          resume.schedule != vacancy.schedule OR
-          NOT resume.salary && vacancy.salary
-     )
-) SELECT message.application_id, text, applicant_to_employer
-    FROM message JOIN nonmatching_applications USING (application_id)
-   ORDER BY message.application_id, created DESC
+         JOIN applicant USING (applicant_id)
+ WHERE vacancy_id = 4 AND
+       resume.city_id = vacancy.city_id AND
+       experience_years <@ expyears_value AND
+       resume.schedule = vacancy.schedule AND
+       resume.salary && vacancy.salary
 ;
 
+-- 11. Мы — Лютик (employer_id = 2) и хотим отправить тестовое задание
+-- подходящим кандидатам на нашу вакансию Java-программиста (id=4).
+DROP FUNCTION IF EXISTS buttercup_reply;
+CREATE FUNCTION buttercup_reply(vac_id INTEGER) RETURNS void AS $$
+  DECLARE
+  matching record;
+BEGIN
+  FOR matching IN (
+    SELECT application_id, applicant.name, vacancy.title
+      FROM application JOIN vacancy USING (vacancy_id)
+             JOIN resume USING (resume_id)
+             JOIN expyears_translation USING (expyears_key)
+             JOIN applicant USING (applicant_id)
+     WHERE vacancy_id = vac_id AND
+           resume.city_id = vacancy.city_id AND
+           experience_years <@ expyears_value AND
+           resume.schedule = vacancy.schedule AND
+           resume.salary && vacancy.salary
+  ) LOOP
+    INSERT INTO message (
+      application_id,
+      created,
+      applicant_to_employer,
+      text
+    ) VALUES (
+      matching.application_id,
+      now(),
+      FALSE,
+      'Здравствуйте, ' || matching.name || '!
+Спасибо за интерес к нашей вакансии ' || matching.title || '
+Решите, пожалуйста, тестовое задание, которое вы можете найти по адресу:
+https://lyutik/testovoe_zadanie
+-- 
+С уважением, Лютиков Л. Л.'
+    );
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM buttercup_reply(4);
+
+-- 12. Мы — по-прежнему Лютик и хотим посмотреть всю переписку с
+-- Лисой Патрикеевной Рыжей (application_id = 3)
+SELECT applicant_to_employer, text
+  FROM message
+ WHERE application_id = 3
+ ORDER BY created;

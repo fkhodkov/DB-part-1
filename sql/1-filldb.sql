@@ -84,7 +84,8 @@ INSERT INTO resume(
     (1, 'Курьер', 1, INT4RANGE(15000, NULL), 1, 'PART_TIME'),
     (2, 'Java-программист', 4, INT4RANGE(50000, NULL), 1, 'FULL_TIME'),
     (3, 'Генеральный директор', 1, INT4RANGE(250000, 300000), 5, 'FULL_TIME'),
-    (4, 'Java-программист', 1, INT4RANGE(75000, 120000), 3, 'FULL_TIME')
+    (4, 'Java-программист', 1, INT4RANGE(75000, 120000), 3, 'FULL_TIME'),
+    (2, 'Java-программист', 1, INT4RANGE(50000, NULL), 1, 'FULL_TIME')
 ;
 
 INSERT INTO experience(
@@ -110,7 +111,8 @@ INSERT INTO application(
     (1, 1),
     (4, 2),
     (5, 4),
-    (2, 3)
+    (2, 3),
+    (3, 4)
 ;
 
 INSERT INTO message(
