@@ -45,15 +45,16 @@ CREATE TABLE resume (
   text TEXT
 );
 
-CREATE TABLE message (
-  message_id BIGSERIAL PRIMARY KEY,
-  response_to BIGINT REFERENCES message(message_id),
-  text TEXT
-  );
-
 CREATE TABLE application (
   application_id BIGSERIAL PRIMARY KEY,
   resume_id BIGINT REFERENCES resume(resume_id) NOT NULL,
-  vacancy_id BIGINT REFERENCES vacancy(vacancy_id) NOT NULL,
-  message_id BIGINT REFERENCES message(message_id) NOT NULL
+  vacancy_id BIGINT REFERENCES vacancy(vacancy_id) NOT NULL
+  );
+
+CREATE TABLE message (
+  message_id BIGSERIAL PRIMARY KEY,
+  application_id BIGINT REFERENCES application(application_id) NOT NULL,
+  created TIMESTAMP NOT NULL DEFAULT now(),
+  applicant_to_employer BOOLEAN NOT NULL,
+  text TEXT
   );

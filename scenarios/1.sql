@@ -43,54 +43,35 @@ INSERT INTO resume (
 -- 5. Откликнуться на вакансию, отправив резюме и сообщение
 -- (создается в процессе отклика).
 BEGIN;
-  WITH created_message AS (
-    INSERT INTO message(text)
-    VALUES ('Добрый день!
+  WITH created_application AS (
+    INSERT INTO application(
+      resume_id,
+      vacancy_id
+    ) VALUES (3, 4)
+      RETURNING application_id
+  ) INSERT INTO message (
+    application_id,
+    text,
+    applicant_to_employer
+  ) VALUES (
+    (SELECT application_id FROM created_application),
+    'Добрый день!
 Рассмотрите, пожалуйста, мою кандидатуру
-С уважением, Мария')
-    RETURNING message_id
-  ) INSERT INTO application(
-    resume_id,
-    vacancy_id,
-    message_id
-  ) VALUES (
-    3,
-    4,
-    (SELECT message_id from created_message)
+С уважением, Мария',
+    TRUE
   );
 END;
 
--- 6. Версия прошлой транзакции, где что-то пошло не так.
--- Сообщение не нужно и в базе не сохраняется.
-SELECT COUNT(message_id) AS before_count FROM message;
-
-BEGIN;
-  WITH created_message AS (
-    INSERT INTO message(text)
-    VALUES ('Это сообщение не должно оказаться в базе')
-    RETURNING message_id
-  ) INSERT INTO application(
-    resume_id,
-    message_id
-  ) VALUES (
-    3,
-    (SELECT message_id from created_message)
-  );
-END;
-
-SELECT COUNT(message_id) AS after_count FROM message;
-
--- 7. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
+-- 6. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
 SELECT resume_id, message.text
   FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
-         JOIN message ON application.message_id = message.message_id
+         JOIN message ON application.application_id = message.application_id
  WHERE vacancy.employer_id = 2;
 
--- 8. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
+-- 7. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
 -- вакансии, где параметры резюме не совпадают с параметрами вакансии.
-SELECT application.resume_id, application.vacancy_id, message.text
+SELECT application.application_id
   FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
-         JOIN message ON application.message_id = message.message_id
          JOIN resume ON resume.resume_id = application.resume_id
  WHERE vacancy.employer_id = 1
    AND (resume.city != vacancy.city OR
@@ -98,3 +79,29 @@ SELECT application.resume_id, application.vacancy_id, message.text
         resume.schedule != vacancy.schedule OR
         NOT resume.salary && vacancy.salary
    );
+
+-- 8. Посмотреть переписку с соискателем, начиная с последнего сообщения, зная
+-- id отклика.
+SELECT text, applicant_to_employer
+  FROM message
+ WHERE application_id = 1
+ ORDER BY created DESC;
+
+-- 9. Комбинация 7 и 8: Ромашка хочет посмотреть переписки со всеми соискателями
+-- на свои вакансии, где параметры резюме не совпадают с параметрами вакансии.
+WITH nonmatching_applications AS (
+  SELECT application.application_id
+    FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
+           JOIN resume ON resume.resume_id = application.resume_id
+   WHERE vacancy.employer_id = 1
+     AND (resume.city != vacancy.city OR
+          resume.experience_years < vacancy.experience_years OR
+          resume.schedule != vacancy.schedule OR
+          NOT resume.salary && vacancy.salary
+     )
+) SELECT message.application_id, text, applicant_to_employer
+    FROM message JOIN nonmatching_applications
+         ON message.application_id = nonmatching_applications.application_id
+   ORDER BY message.application_id, created DESC
+;
+
