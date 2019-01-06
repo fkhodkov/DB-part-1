@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS resume CASCADE;
 DROP TABLE IF EXISTS application CASCADE;
 DROP TABLE IF EXISTS message CASCADE;
 DROP TABLE IF EXISTS expyears_translation CASCADE;
+DROP TABLE IF EXISTS city CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
 DROP TYPE IF EXISTS EXPYEARS_T CASCADE;
 
@@ -44,11 +45,16 @@ VALUES
   ('ANY', INT4RANGE(NULL, NULL))
 ;
 
+CREATE TABLE city (
+  city_id SERIAL PRIMARY KEY,
+  NAME VARCHAR(100)
+);
+
 CREATE TABLE vacancy (
   vacancy_id SERIAL PRIMARY KEY,
   employer_id INTEGER REFERENCES employer(employer_id) NOT NULL,
   title VARCHAR(1000) NOT NULL,
-  city VARCHAR(100) NOT NULL,
+  city_id INTEGER REFERENCES city(city_id) NOT NULL,
   salary INT4RANGE,
   expyears_key EXPYEARS_T NOT NULL,
   schedule SCHEDULE_T,
@@ -66,7 +72,7 @@ CREATE TABLE resume (
   resume_id SERIAL PRIMARY KEY,
   applicant_id INTEGER REFERENCES applicant(applicant_id) NOT NULL,
   title VARCHAR(1000) NOT NULL,
-  city VARCHAR(100) NOT NULL,
+  city_id INTEGER REFERENCES city(city_id) NOT NULL,
   salary INT4RANGE,
   experience_years INTEGER,
   schedule SCHEDULE_T,
@@ -78,7 +84,7 @@ CREATE TABLE application (
   application_id SERIAL PRIMARY KEY,
   resume_id INTEGER REFERENCES resume(resume_id) NOT NULL,
   vacancy_id INTEGER REFERENCES vacancy(vacancy_id) NOT NULL
-  );
+);
 
 CREATE TABLE message (
   message_id SERIAL PRIMARY KEY,
@@ -86,4 +92,4 @@ CREATE TABLE message (
   created TIMESTAMP NOT NULL,
   applicant_to_employer BOOLEAN NOT NULL,
   text TEXT
-  );
+);

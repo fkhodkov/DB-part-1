@@ -22,13 +22,13 @@ SELECT applicant_id FROM applicant
 INSERT INTO vacancy (
   employer_id,
   title,
-  city,
+  city_id,
   expyears_key,
   schedule
 ) VALUES (
   4,
   'Зиц-председатель',
-  'Черноморск',
+  5,
   '6+',
   'REMOTE'
 );
@@ -39,13 +39,13 @@ INSERT INTO vacancy (
 INSERT INTO resume (
   applicant_id,
   title,
-  city,
+  city_id,
   experience_years,
   schedule
 ) VALUES (
   5,
   'Штирлиц',
-  'Берлин',
+  6,
   25,
   'FULL_TIME'
 );
@@ -85,7 +85,7 @@ SELECT application.application_id
          JOIN resume USING (resume_id)
          JOIN expyears_translation USING (expyears_key)
  WHERE vacancy.employer_id = 1
-   AND (resume.city != vacancy.city OR
+   AND (resume.city_id != vacancy.city_id OR
         NOT experience_years <@ expyears_value OR
         resume.schedule != vacancy.schedule OR
         NOT resume.salary && vacancy.salary
@@ -106,7 +106,7 @@ WITH nonmatching_applications AS (
            JOIN resume USING (resume_id)
            JOIN expyears_translation USING (expyears_key)
    WHERE vacancy.employer_id = 1
-     AND (resume.city != vacancy.city OR
+     AND (resume.city_id != vacancy.city_id OR
           NOT experience_years <@ expyears_value OR
           resume.schedule != vacancy.schedule OR
           NOT resume.salary && vacancy.salary
