@@ -12,10 +12,10 @@ CREATE TABLE employer (
 );
 
 CREATE TYPE SCHEDULE_T AS ENUM (
-  'full_time',
-  'part_time',
-  'flexible',
-  'remote'
+  'FULL_TIME',
+  'PART_TIME',
+  'FLEXIBLE',
+  'REMOTE'
 );
 
 CREATE TABLE vacancy (
