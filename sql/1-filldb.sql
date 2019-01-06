@@ -13,21 +13,27 @@ ALTER SEQUENCE vacancy_vacancy_id_seq RESTART WITH 1;
 TRUNCATE application CASCADE;
 ALTER SEQUENCE application_application_id_seq RESTART WITH 1;
 
-INSERT INTO employer(title)
-VALUES
-  ('Ромашка'),
-  ('Лютик'),
-  ('Березка'),
-  ('Рога и копыта'),
-  ('ООО ЕПРСТ-Инвест');
+INSERT INTO employer(
+  title,
+  email,
+  password
+) VALUES
+  ('Ромашка', 'romashka@email', crypt('12345', gen_salt('bf'))),
+  ('Лютик', 'lyutik@email', crypt('abcde', gen_salt('bf'))),
+  ('Березка', 'berezka@email', crypt('p455w0rd', gen_salt('bf'))),
+  ('Рога и копыта', 'roga-i-kopyta@email', crypt('    ', gen_salt('bf'))),
+  ('ООО ЕПРСТ-Инвест', 'eprst-invest@email', crypt('qwerty', gen_salt('bf')));
 
-INSERT INTO applicant(name)
-VALUES
-  ('Василий Иванович Пупкин'),
-  ('Мария Петровна Сидорова'),
-  ('Михайло Потапович Топтыгин'),
-  ('Лиса Патрикеевна Рыжая'),
-  ('Максим Максимович Исаев');
+INSERT INTO applicant(
+  name,
+  email,
+  password
+) VALUES
+  ('Василий Иванович Пупкин', 'pupkine@email', crypt('12345', gen_salt('bf'))),
+  ('Мария Петровна Сидорова', 'sidorowa@email', crypt('abcde', gen_salt('bf'))),
+  ('Михайло Потапович Топтыгин', 'toptygin@email', crypt('p455w0rd', gen_salt('bf'))),
+  ('Лиса Патрикеевна Рыжая', 'patrikeevna@email', crypt('    ', gen_salt('bf'))),
+  ('Максим Максимович Исаев', 'isaev@email', crypt('qwerty', gen_salt('bf')));
 
 INSERT INTO vacancy(
   employer_id,
