@@ -64,15 +64,15 @@ WITH created_application AS (
 
 -- 6. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
 SELECT resume_id, message.text
-  FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
-         JOIN message ON application.application_id = message.application_id
+  FROM application JOIN vacancy USING (vacancy_id)
+         JOIN message USING (application_id)
  WHERE vacancy.employer_id = 2;
 
 -- 7. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
 -- вакансии, где параметры резюме не совпадают с параметрами вакансии.
 SELECT application.application_id
-  FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
-         JOIN resume ON resume.resume_id = application.resume_id
+  FROM application JOIN vacancy USING (vacancy_id)
+         JOIN resume USING (resume_id)
  WHERE vacancy.employer_id = 1
    AND (resume.city != vacancy.city OR
         resume.experience_years < vacancy.experience_years OR
@@ -91,8 +91,8 @@ SELECT text, applicant_to_employer
 -- на свои вакансии, где параметры резюме не совпадают с параметрами вакансии.
 WITH nonmatching_applications AS (
   SELECT application.application_id
-    FROM application JOIN vacancy ON application.vacancy_id = vacancy.vacancy_id
-           JOIN resume ON resume.resume_id = application.resume_id
+    FROM application JOIN vacancy USING (vacancy_id)
+           JOIN resume USING (resume_id)
    WHERE vacancy.employer_id = 1
      AND (resume.city != vacancy.city OR
           resume.experience_years < vacancy.experience_years OR
@@ -100,8 +100,7 @@ WITH nonmatching_applications AS (
           NOT resume.salary && vacancy.salary
      )
 ) SELECT message.application_id, text, applicant_to_employer
-    FROM message JOIN nonmatching_applications
-         ON message.application_id = nonmatching_applications.application_id
+    FROM message JOIN nonmatching_applications USING (application_id)
    ORDER BY message.application_id, created DESC
 ;
 
