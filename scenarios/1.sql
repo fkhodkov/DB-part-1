@@ -52,13 +52,15 @@ BEGIN;
   ) INSERT INTO message (
     application_id,
     text,
-    applicant_to_employer
+    applicant_to_employer,
+    created
   ) VALUES (
     (SELECT application_id FROM created_application),
     'Добрый день!
 Рассмотрите, пожалуйста, мою кандидатуру
 С уважением, Мария',
-    TRUE
+    TRUE,
+    now()
   );
 END;
 

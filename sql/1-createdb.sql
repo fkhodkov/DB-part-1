@@ -54,7 +54,7 @@ CREATE TABLE application (
 CREATE TABLE message (
   message_id BIGSERIAL PRIMARY KEY,
   application_id BIGINT REFERENCES application(application_id) NOT NULL,
-  created TIMESTAMP NOT NULL DEFAULT now(),
+  created TIMESTAMP NOT NULL,
   applicant_to_employer BOOLEAN NOT NULL,
   text TEXT
   );
