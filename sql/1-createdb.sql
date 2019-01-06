@@ -4,7 +4,9 @@ DROP TABLE IF EXISTS applicant CASCADE;
 DROP TABLE IF EXISTS resume CASCADE;
 DROP TABLE IF EXISTS application CASCADE;
 DROP TABLE IF EXISTS message CASCADE;
+DROP TABLE IF EXISTS expyears_translation CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
+DROP TYPE IF EXISTS EXPYEARS_T CASCADE;
 
 CREATE TABLE employer (
   employer_id SERIAL PRIMARY KEY,
@@ -18,13 +20,35 @@ CREATE TYPE SCHEDULE_T AS ENUM (
   'REMOTE'
 );
 
+CREATE TYPE EXPYEARS_T AS ENUM (
+  '0-1',
+  '1-3',
+  '3-6',
+  '6+',
+  'ANY'
+);
+
+CREATE TABLE expyears_translation (
+  expyears_key EXPYEARS_T PRIMARY KEY,
+  expyears_value INT4RANGE
+);
+
+INSERT INTO expyears_translation
+VALUES
+  ('0-1', INT4RANGE(0, 1, '[]')),
+  ('1-3', INT4RANGE(1, 3, '[]')),
+  ('3-6', INT4RANGE(3, 6, '[]')),
+  ('6+', INT4RANGE(6, NULL)),
+  ('ANY', INT4RANGE(NULL, NULL))
+;
+
 CREATE TABLE vacancy (
   vacancy_id SERIAL PRIMARY KEY,
   employer_id INTEGER REFERENCES employer(employer_id) NOT NULL,
   title VARCHAR(1000) NOT NULL,
   city VARCHAR(100) NOT NULL,
   salary INT4RANGE,
-  experience_years INTEGER,
+  expyears_key EXPYEARS_T NOT NULL,
   schedule SCHEDULE_T,
   description TEXT
 );
@@ -42,7 +66,8 @@ CREATE TABLE resume (
   salary INT4RANGE,
   experience_years INTEGER,
   schedule SCHEDULE_T,
-  text TEXT
+  text TEXT,
+  CHECK (experience_years > 0)
 );
 
 CREATE TABLE application (

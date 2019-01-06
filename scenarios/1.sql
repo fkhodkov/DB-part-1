@@ -13,13 +13,13 @@ INSERT INTO vacancy (
   employer_id,
   title,
   city,
-  experience_years,
+  expyears_key,
   schedule
 ) VALUES (
   4,
   'Зиц-председатель',
   'Черноморск',
-  50,
+  '6+',
   'REMOTE'
 );
 
@@ -66,16 +66,17 @@ WITH created_application AS (
 SELECT resume_id, message.text
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN message USING (application_id)
- WHERE vacancy.employer_id = 2;
+ WHERE employer_id = 2;
 
 -- 7. Мы — фирма Ромашка (employer_id = 1) и хотим посмотреть все отклики на наши
 -- вакансии, где параметры резюме не совпадают с параметрами вакансии.
 SELECT application.application_id
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN resume USING (resume_id)
+         JOIN expyears_translation USING (expyears_key)
  WHERE vacancy.employer_id = 1
    AND (resume.city != vacancy.city OR
-        resume.experience_years < vacancy.experience_years OR
+        NOT experience_years <@ expyears_value OR
         resume.schedule != vacancy.schedule OR
         NOT resume.salary && vacancy.salary
    );
@@ -93,9 +94,10 @@ WITH nonmatching_applications AS (
   SELECT application.application_id
     FROM application JOIN vacancy USING (vacancy_id)
            JOIN resume USING (resume_id)
+           JOIN expyears_translation USING (expyears_key)
    WHERE vacancy.employer_id = 1
      AND (resume.city != vacancy.city OR
-          resume.experience_years < vacancy.experience_years OR
+          NOT experience_years <@ expyears_value OR
           resume.schedule != vacancy.schedule OR
           NOT resume.salary && vacancy.salary
      )
