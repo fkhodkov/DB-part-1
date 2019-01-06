@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS application CASCADE;
 DROP TABLE IF EXISTS message CASCADE;
 DROP TABLE IF EXISTS expyears_translation CASCADE;
 DROP TABLE IF EXISTS city CASCADE;
+DROP TABLE if EXISTS experience CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
 DROP TYPE IF EXISTS EXPYEARS_T CASCADE;
 
@@ -78,6 +79,15 @@ CREATE TABLE resume (
   schedule SCHEDULE_T,
   text TEXT,
   CHECK (experience_years > 0)
+);
+
+CREATE TABLE experience (
+  experience_id SERIAL PRIMARY KEY,
+  resume_id INTEGER REFERENCES resume(resume_id) NOT NULL,
+  employer VARCHAR(1000) NOT NULL,
+  job_title VARCHAR(1000) NOT NULL,
+  job_description TEXT,
+  dates DATERANGE NOT NULL
 );
 
 CREATE TABLE application (
