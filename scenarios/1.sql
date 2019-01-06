@@ -96,6 +96,5 @@ SELECT application.resume_id, application.vacancy_id, message.text
    AND (resume.city != vacancy.city OR
         resume.experience_years < vacancy.experience_years OR
         resume.schedule != vacancy.schedule OR
-        resume.field != vacancy.field OR
         NOT resume.salary && vacancy.salary
    );

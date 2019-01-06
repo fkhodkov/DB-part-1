@@ -26,7 +26,6 @@ CREATE TABLE vacancy (
   salary INT4RANGE,
   experience_years INTEGER,
   schedule SCHEDULE_T,
-  field VARCHAR(1000),
   description TEXT
 );
 
@@ -43,7 +42,6 @@ CREATE TABLE resume (
   salary INT4RANGE,
   experience_years INTEGER,
   schedule SCHEDULE_T,
-  field VARCHAR(1000),
   text TEXT
 );
 
