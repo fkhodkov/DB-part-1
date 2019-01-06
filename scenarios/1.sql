@@ -42,27 +42,25 @@ INSERT INTO resume (
 
 -- 5. Откликнуться на вакансию, отправив резюме и сообщение
 -- (создается в процессе отклика).
-BEGIN;
-  WITH created_application AS (
-    INSERT INTO application(
-      resume_id,
-      vacancy_id
-    ) VALUES (3, 4)
-      RETURNING application_id
-  ) INSERT INTO message (
-    application_id,
-    text,
-    applicant_to_employer,
-    created
-  ) VALUES (
-    (SELECT application_id FROM created_application),
-    'Добрый день!
-Рассмотрите, пожалуйста, мою кандидатуру
-С уважением, Мария',
-    TRUE,
-    now()
-  );
-END;
+WITH created_application AS (
+  INSERT INTO application(
+    resume_id,
+    vacancy_id
+  ) VALUES (3, 4)
+           RETURNING application_id
+) INSERT INTO message (
+  application_id,
+  text,
+  applicant_to_employer,
+  created
+) VALUES (
+  (SELECT application_id FROM created_application),
+  'Добрый день!
+  Рассмотрите, пожалуйста, мою кандидатуру
+  С уважением, Мария',
+  TRUE,
+  now()
+);
 
 -- 6. Мы — фирма Лютик (employer_id = 2) и хотим посмотреть все отклики на наши вакансии.
 SELECT resume_id, message.text
