@@ -89,7 +89,7 @@ INSERT INTO vacancy(
   title,
   city_id,
   salary,
-  experience_years_key,
+  experience_years,
   schedule,
   description,
   vacancy_status
@@ -107,7 +107,19 @@ INSERT INTO vacancy(
 Желательно знать что-то из набора: Perl, PHP, C++.
 Наличие open-source разработок в портфолио будет плюсом.', 'OPEN'),
     (2, 'Программист C++', 3, INT4RANGE(NULL, 130000), '1-3', 'FULL_TIME',
-    'Хорошее знание STL, SQL (опыт работы с PostgreSQL желателен)', 'OPEN')
+    'Хорошее знание STL, SQL (опыт работы с PostgreSQL желателен)', 'OPEN'),
+    (3, 'Архитектор БД', 1, INT4RANGE(NULL, 100000), '0-1', 'FULL_TIME',
+    'Что нужно сделать:
+  * Понять сценарии использования Вашего приложения
+  * Спроектировать БД, которая будет это приложение обслуживать.', 'OPEN'),
+    (4, 'Архитектор БД', 1, INT4RANGE(60000, 80000), '0-1', 'FULL_TIME',
+    'Что нужно сделать:
+  * Понять сценарии использования Вашего приложения
+  * Спроектировать БД, которая будет это приложение обслуживать.', 'OPEN'),
+    (5, 'Архитектор БД', 1, INT4RANGE(NULL, NULL), 'ANY', 'FULL_TIME',
+    'Что нужно сделать:
+  * Понять сценарии использования Вашего приложения
+  * Спроектировать БД, которая будет это приложение обслуживать.', 'OPEN')
 ;
 
 INSERT INTO resume(
@@ -115,7 +127,7 @@ INSERT INTO resume(
   title,
   city_id,
   salary,
-  experience_years_key,
+  experience_years,
   schedule
 ) VALUES
     (1, 'Менеджер по продажам', 1, INT4RANGE(25000, 35000), '1-3', 'FULL_TIME'),
@@ -124,6 +136,7 @@ INSERT INTO resume(
     (3, 'Генеральный директор', 1, INT4RANGE(250000, 300000), '3-6', 'FULL_TIME'),
     (4, 'Java-программист', 1, INT4RANGE(75000, 120000), '1-3', 'FULL_TIME'),
     (2, 'Java-программист', 1, INT4RANGE(50000, NULL), '1-3', 'FULL_TIME')
+    
 ;
 
 INSERT INTO experience(
@@ -147,7 +160,7 @@ INSERT INTO application(
   vacancy_id,
   application_status
 ) VALUES
-    (1, 1, 'INTERVIEW_INVITED'),
+    (1, 1, 'RESPONDED'),
     (4, 2, 'REJECTED'),
     (5, 4, 'NOT_RESPONDED'),
     (2, 3, 'REJECTED'),
