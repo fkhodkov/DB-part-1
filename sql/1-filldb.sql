@@ -4,37 +4,74 @@ ALTER SEQUENCE employer_employer_id_seq RESTART WITH 1;
 TRUNCATE applicant CASCADE;
 ALTER SEQUENCE applicant_applicant_id_seq RESTART WITH 1;
 
-TRUNCATE employer CASCADE;
+TRUNCATE resume CASCADE;
 ALTER SEQUENCE resume_resume_id_seq RESTART WITH 1;
 
-TRUNCATE employer CASCADE;
+TRUNCATE city CASCADE;
+ALTER SEQUENCE city_city_id_seq RESTART WITH 1;
+
+TRUNCATE vacancy CASCADE;
 ALTER SEQUENCE vacancy_vacancy_id_seq RESTART WITH 1;
 
 TRUNCATE application CASCADE;
 ALTER SEQUENCE application_application_id_seq RESTART WITH 1;
 
-INSERT INTO employer(
-  title,
+TRUNCATE account CASCADE;
+ALTER SEQUENCE account_account_id_seq RESTART WITH 1;
+
+TRUNCATE employer_account CASCADE;
+
+TRUNCATE experience CASCADE;
+ALTER SEQUENCE experience_experience_id_seq RESTART WITH 1;
+
+TRUNCATE message CASCADE;
+ALTER SEQUENCE message_message_id_seq RESTART WITH 1;
+
+INSERT INTO account (
+  login,
   email,
   password
 ) VALUES
-  ('Ромашка', 'romashka@email', crypt('12345', gen_salt('bf'))),
-  ('Лютик', 'lyutik@email', crypt('abcde', gen_salt('bf'))),
-  ('Березка', 'berezka@email', crypt('p455w0rd', gen_salt('bf'))),
-  ('Рога и копыта', 'roga-i-kopyta@email', crypt('    ', gen_salt('bf'))),
-  ('ООО ЕПРСТ-Инвест', 'eprst-invest@email', crypt('qwerty', gen_salt('bf')))
+  ('romashka', 'romashka@email', crypt('12345', gen_salt('bf'))),
+  ('lyutik', 'lyutik@email', crypt('abcde', gen_salt('bf'))),
+  ('berezka', 'berezka@email', crypt('p455w0rd', gen_salt('bf'))),
+  ('roga_i_kopyta', 'roga-i-kopyta@email', crypt('    ', gen_salt('bf'))),
+  ('eprst_invest', 'eprst-invest@email', crypt('qwerty', gen_salt('bf')))
+;
+
+INSERT INTO employer(
+  title
+) VALUES
+  ('Ромашка'),
+  ('Лютик'),
+  ('Березка'),
+  ('Рога и копыта'),
+  ('ООО ЕПРСТ-Инвест')
+;
+
+INSERT INTO employer_account VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
+
+INSERT INTO account (
+  login,
+  email,
+  password
+) VALUES
+  ('pupkine', 'pupkine@email', crypt('12345', gen_salt('bf'))),
+  ('sidorowa', 'sidorowa@email', crypt('abcde', gen_salt('bf'))),
+  ('toptygin', 'toptygin@email', crypt('p455w0rd', gen_salt('bf'))),
+  ('patrikeevna', 'patrikeevna@email', crypt('    ', gen_salt('bf'))),
+  ('isaev', 'isaev@email', crypt('qwerty', gen_salt('bf')))
 ;
 
 INSERT INTO applicant(
   name,
-  email,
-  password
+  account_id
 ) VALUES
-  ('Василий Иванович Пупкин', 'pupkine@email', crypt('12345', gen_salt('bf'))),
-  ('Мария Петровна Сидорова', 'sidorowa@email', crypt('abcde', gen_salt('bf'))),
-  ('Михайло Потапович Топтыгин', 'toptygin@email', crypt('p455w0rd', gen_salt('bf'))),
-  ('Лиса Патрикеевна Рыжая', 'patrikeevna@email', crypt('    ', gen_salt('bf'))),
-  ('Максим Максимович Исаев', 'isaev@email', crypt('qwerty', gen_salt('bf')))
+  ('Василий Иванович Пупкин', 6),
+  ('Мария Петровна Сидорова', 7),
+  ('Михайло Потапович Топтыгин', 8),
+  ('Лиса Патрикеевна Рыжая', 9),
+  ('Максим Максимович Исаев', 10)
 ;
 
 INSERT INTO city(name)
@@ -52,7 +89,7 @@ INSERT INTO vacancy(
   title,
   city_id,
   salary,
-  expyears_key,
+  experience_years_key,
   schedule,
   description
 ) VALUES
@@ -77,15 +114,15 @@ INSERT INTO resume(
   title,
   city_id,
   salary,
-  experience_years,
+  experience_years_key,
   schedule
 ) VALUES
-    (1, 'Менеджер по продажам', 1, INT4RANGE(25000, 35000), 1, 'FULL_TIME'),
-    (1, 'Курьер', 1, INT4RANGE(15000, NULL), 1, 'PART_TIME'),
-    (2, 'Java-программист', 4, INT4RANGE(50000, NULL), 1, 'FULL_TIME'),
-    (3, 'Генеральный директор', 1, INT4RANGE(250000, 300000), 5, 'FULL_TIME'),
-    (4, 'Java-программист', 1, INT4RANGE(75000, 120000), 3, 'FULL_TIME'),
-    (2, 'Java-программист', 1, INT4RANGE(50000, NULL), 1, 'FULL_TIME')
+    (1, 'Менеджер по продажам', 1, INT4RANGE(25000, 35000), '1-3', 'FULL_TIME'),
+    (1, 'Курьер', 1, INT4RANGE(15000, NULL), '1-3', 'PART_TIME'),
+    (2, 'Java-программист', 4, INT4RANGE(50000, NULL), '1-3', 'FULL_TIME'),
+    (3, 'Генеральный директор', 1, INT4RANGE(250000, 300000), '3-6', 'FULL_TIME'),
+    (4, 'Java-программист', 1, INT4RANGE(75000, 120000), '1-3', 'FULL_TIME'),
+    (2, 'Java-программист', 1, INT4RANGE(50000, NULL), '1-3', 'FULL_TIME')
 ;
 
 INSERT INTO experience(

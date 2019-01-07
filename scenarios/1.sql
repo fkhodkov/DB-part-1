@@ -23,7 +23,7 @@ INSERT INTO vacancy (
   employer_id,
   title,
   city_id,
-  expyears_key,
+  experience_years_key,
   schedule
 ) VALUES (
   4,
@@ -95,11 +95,11 @@ SELECT application_id, applicant.name, experience_years, salary, city.name
 SELECT application_id, applicant.name, experience_years, resume.salary
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN resume USING (resume_id)
-         JOIN expyears_translation USING (expyears_key)
+         JOIN experience_years_translation USING (experience_years_key)
          JOIN applicant USING (applicant_id)
  WHERE vacancy_id = 4 AND status = 'NOT_RESPONDED' AND
        resume.city_id = vacancy.city_id AND
-       experience_years <@ expyears_value AND
+       experience_years <@ experience_years_value AND
        resume.schedule = vacancy.schedule AND
        resume.salary && vacancy.salary
 ;
@@ -115,11 +115,11 @@ BEGIN
     SELECT application_id, applicant.name, vacancy.title
       FROM application JOIN vacancy USING (vacancy_id)
              JOIN resume USING (resume_id)
-             JOIN expyears_translation USING (expyears_key)
+             JOIN experience_years_translation USING (experience_years_key)
              JOIN applicant USING (applicant_id)
      WHERE vacancy_id = vac_id AND status = 'NOT_RESPONDED' AND
            resume.city_id = vacancy.city_id AND
-           experience_years <@ expyears_value AND
+           experience_years <@ experience_years_value AND
            resume.schedule = vacancy.schedule AND
            resume.salary && vacancy.salary
   ) LOOP

@@ -4,17 +4,30 @@ DROP TABLE IF EXISTS applicant CASCADE;
 DROP TABLE IF EXISTS resume CASCADE;
 DROP TABLE IF EXISTS application CASCADE;
 DROP TABLE IF EXISTS message CASCADE;
-DROP TABLE IF EXISTS expyears_translation CASCADE;
+DROP TABLE IF EXISTS experience_years_translation CASCADE;
 DROP TABLE IF EXISTS city CASCADE;
 DROP TABLE if EXISTS experience CASCADE;
+DROP TABLE if EXISTS account CASCADE;
+DROP TABLE if EXISTS employer_account CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
 DROP TYPE IF EXISTS APPSTATUS_T CASCADE;
 
+CREATE TABLE account (
+  account_id SERIAL PRIMARY KEY,
+  login VARCHAR(100) NOT NULL,
+  email VARCHAR(254) NOT NULL,
+  password VARCHAR(60) NOT NULL
+);
+
 CREATE TABLE employer (
   employer_id SERIAL PRIMARY KEY,
-  title VARCHAR(1000) NOT NULL,
-  email VARCHAR(254) NOT NULL,
-  password VARCHAR(1000) NOT NULL
+  title VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE employer_account (
+  employer_id INTEGER REFERENCES employer,
+  account_id INTEGER REFERENCES account,
+  PRIMARY KEY (employer_id, account_id)
 );
 
 CREATE TYPE SCHEDULE_T AS ENUM (
@@ -24,12 +37,12 @@ CREATE TYPE SCHEDULE_T AS ENUM (
   'REMOTE'
 );
 
-CREATE TABLE expyears_translation (
-  expyears_key VARCHAR(16) PRIMARY KEY,
-  expyears_value INT4RANGE
+CREATE TABLE experience_years_translation (
+  experience_years_key VARCHAR(16) PRIMARY KEY,
+  experience_years_value INT4RANGE
 );
 
-INSERT INTO expyears_translation
+INSERT INTO experience_years_translation
 VALUES
   ('0-1', INT4RANGE(0, 1, '[]')),
   ('1-3', INT4RANGE(1, 3, '[]')),
@@ -45,39 +58,37 @@ CREATE TABLE city (
 
 CREATE TABLE vacancy (
   vacancy_id SERIAL PRIMARY KEY,
-  employer_id INTEGER REFERENCES employer(employer_id) NOT NULL,
-  title VARCHAR(1000) NOT NULL,
-  city_id INTEGER REFERENCES city(city_id) NOT NULL,
+  employer_id INTEGER REFERENCES employer NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  city_id INTEGER REFERENCES city NOT NULL,
   salary INT4RANGE,
-  expyears_key VARCHAR(16) REFERENCES expyears_translation(expyears_key) NOT NULL,
+  experience_years_key VARCHAR(16) REFERENCES experience_years_translation NOT NULL,
   schedule SCHEDULE_T,
   description TEXT
 );
 
 CREATE TABLE applicant (
   applicant_id SERIAL PRIMARY KEY,
-  name VARCHAR(1000) NOT NULL,
-  email VARCHAR(254) NOT NULL,
-  password VARCHAR(1000) NOT NULL
+  name VARCHAR(100) NOT NULL,
+  account_id INTEGER REFERENCES account
 );
 
 CREATE TABLE resume (
   resume_id SERIAL PRIMARY KEY,
-  applicant_id INTEGER REFERENCES applicant(applicant_id) NOT NULL,
-  title VARCHAR(1000) NOT NULL,
-  city_id INTEGER REFERENCES city(city_id) NOT NULL,
+  applicant_id INTEGER REFERENCES applicant NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  city_id INTEGER REFERENCES city NOT NULL,
   salary INT4RANGE,
-  experience_years INTEGER,
+  experience_years_key VARCHAR(16) REFERENCES experience_years_translation NOT NULL,
   schedule SCHEDULE_T,
-  text TEXT,
-  CHECK (experience_years > 0)
+  text TEXT
 );
 
 CREATE TABLE experience (
   experience_id SERIAL PRIMARY KEY,
-  resume_id INTEGER REFERENCES resume(resume_id) NOT NULL,
-  employer VARCHAR(1000) NOT NULL,
-  job_title VARCHAR(1000) NOT NULL,
+  resume_id INTEGER REFERENCES resume NOT NULL,
+  employer VARCHAR(100) NOT NULL,
+  job_title VARCHAR(100) NOT NULL,
   job_description TEXT,
   dates DATERANGE NOT NULL
 );
@@ -93,14 +104,14 @@ CREATE TYPE APPSTATUS_T AS ENUM (
 
 CREATE TABLE application (
   application_id SERIAL PRIMARY KEY,
-  resume_id INTEGER REFERENCES resume(resume_id) NOT NULL,
-  vacancy_id INTEGER REFERENCES vacancy(vacancy_id) NOT NULL,
+  resume_id INTEGER REFERENCES resume NOT NULL,
+  vacancy_id INTEGER REFERENCES vacancy NOT NULL,
   status  APPSTATUS_T NOT NULL
 );
 
 CREATE TABLE message (
   message_id SERIAL PRIMARY KEY,
-  application_id INTEGER REFERENCES application(application_id) NOT NULL,
+  application_id INTEGER REFERENCES application NOT NULL,
   created TIMESTAMP NOT NULL,
   applicant_to_employer BOOLEAN NOT NULL,
   text TEXT
