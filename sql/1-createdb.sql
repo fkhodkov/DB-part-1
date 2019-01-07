@@ -38,20 +38,6 @@ CREATE TYPE SCHEDULE_T AS ENUM (
   'REMOTE'
 );
 
--- CREATE TABLE experience_years_translation (
---   experience_years_key VARCHAR(16) PRIMARY KEY,
---   experience_years_value INT4RANGE
--- );
-
--- INSERT INTO experience_years_translation
--- VALUES
---   ('0-1', INT4RANGE(0, 1, '[]')),
---   ('1-3', INT4RANGE(1, 3, '[]')),
---   ('3-6', INT4RANGE(3, 6, '[]')),
---   ('6+', INT4RANGE(6, NULL)),
---   ('ANY', INT4RANGE(NULL, NULL))
--- ;
-
 CREATE TYPE EXPERIENCE_YEARS_T AS ENUM (
   '0-1',
   '1-3',
@@ -75,7 +61,7 @@ CREATE TABLE vacancy (
   employer_id INTEGER REFERENCES employer NOT NULL,
   title VARCHAR(100) NOT NULL,
   city_id INTEGER REFERENCES city NOT NULL,
-  salary INT4RANGE,
+  salary INT4RANGE NOT NULL,
   experience_years EXPERIENCE_YEARS_T NOT NULL,
   schedule SCHEDULE_T,
   description TEXT,
@@ -93,7 +79,7 @@ CREATE TABLE resume (
   applicant_id INTEGER REFERENCES applicant NOT NULL,
   title VARCHAR(100) NOT NULL,
   city_id INTEGER REFERENCES city NOT NULL,
-  salary INT4RANGE,
+  salary INT4RANGE NOT NULL,
   experience_years EXPERIENCE_YEARS_T NOT NULL,
   schedule SCHEDULE_T,
   text TEXT,
@@ -110,11 +96,8 @@ CREATE TABLE experience (
 );
 
 CREATE TYPE APPLICATION_STATUS_T AS ENUM (
-  'NOT_RESPONDED',
-  'RESPONDED',
-  'REJECTED',
-  'WITHDRAWN',
-  'ACCEPTED'
+  'OPEN',
+  'CLOSED'
 );
 
 CREATE TABLE application (

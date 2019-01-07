@@ -61,7 +61,7 @@ SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vaca
 -- работодателям, чтобы начать переписку.
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (7, 6, 'NOT_RESPONDED')
+  VALUES (7, 6, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -74,7 +74,7 @@ WITH created_application AS (
 );
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (7, 7, 'NOT_RESPONDED')
+  VALUES (7, 7, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -87,7 +87,7 @@ WITH created_application AS (
 );
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (7, 8, 'NOT_RESPONDED')
+  VALUES (7, 8, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -99,38 +99,30 @@ WITH created_application AS (
   now()
 );
 -- 5.1 На некоторые из откликов пришли ответы
-BEGIN;
-  INSERT INTO message (
-    application_id, text, applicant_to_employer, created
-  ) VALUES  (
-    6,
-    'Добрый вечер!
+INSERT INTO message (
+  application_id, text, applicant_to_employer, created
+) VALUES  (
+  6,
+  'Добрый вечер!
 В дополнение к тому, что указано в вакансии, добавляем:
- * рабочий день составляет 25 часов в сутки,
- * без выходных.
+  * рабочий день составляет 25 часов в сутки,
+  * без выходных.
 Приходите на собеседование завтра в 23:00.
 Адрес: за гаражами',
-    FALSE,
-    now()
-  );
-  UPDATE application SET application_status = 'RESPONDED'
-   WHERE application_id = 6;
-END;
-BEGIN;
-  INSERT INTO message (
-    application_id, text, applicant_to_employer, created
-  ) VALUES  (
-    8,
-    'Добрый вечер!
+  FALSE,
+  now()
+);
+INSERT INTO message (
+  application_id, text, applicant_to_employer, created
+) VALUES  (
+  8,
+  'Добрый вечер!
 Решите, пожалуйста, тестовое задание.  
 Вы можете скачать его по ссылке:
 https://eprst-invest/testovoe-zadanie',
-    FALSE,
-    now()
-  );
-  UPDATE application SET application_status = 'RESPONDED'
-   WHERE application_id = 8;
-END;
+  FALSE,
+  now()
+);
 
 -- 6. Я соискатель, который отправил резюме работодателями, и хочу посмотреть,
 -- на какие их них уже пришли ответы
@@ -138,9 +130,7 @@ SELECT application_id, employer.title, vacancy.salary, message.text
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN employer USING (employer_id)
          JOIN message USING (application_id)
- WHERE resume_id = 7
-   AND application_status = 'RESPONDED'
-   AND NOT applicant_to_employer;
+ WHERE resume_id = 7 AND NOT applicant_to_employer;
 
 -- 7. Я соискатель, который в ходе переписки с работодателем решил, что не
 -- заинтересован в вакансии, и хочу написать работодателю, чтобы сообщить о
@@ -157,9 +147,10 @@ BEGIN;
     TRUE,
     now()
   );
-  UPDATE application SET application_status = 'WITHDRAWN'
+  UPDATE application SET application_status = 'CLOSED'
    WHERE application_id = 6;
 END;
+
 -- 8. Я соискатель, который получил от работодателя предложение, которое меня
 -- устроило, и хочу написать работодателю, чтобы сообщить, что принимаю
 -- предложение
@@ -173,6 +164,6 @@ BEGIN;
     TRUE,
     now()
   );
-  UPDATE application SET application_status = 'ACCEPTED'
+  UPDATE application SET application_status = 'CLOSED'
    WHERE application_id = 8;
 END;

@@ -98,7 +98,7 @@ INSERT INTO vacancy(
     'Лучший в мире менеджер по продажам для лучшей в мире компании!', 'OPEN'),
     (1, 'Генеральный директор', 1, INT4RANGE(150000, 200000), '3-6', 'FULL_TIME',
     'Лучший в мире генеральный директор для лучшей в мире компании!', 'OPEN'),
-    (1, 'Курьер', 2, NULL, 'ANY', 'FLEXIBLE',
+    (1, 'Курьер', 2, INT4RANGE(NULL, NULL), 'ANY', 'FLEXIBLE',
     'Лучший в мире курьер для лучшей в мире компании!
 График свободный, оплата сдельная', 'OPEN'),
     (2, 'Java-программист', 1, INT4RANGE(75000, 120000), '1-3', 'FULL_TIME',
@@ -160,11 +160,11 @@ INSERT INTO application(
   vacancy_id,
   application_status
 ) VALUES
-    (1, 1, 'RESPONDED'),
-    (4, 2, 'REJECTED'),
-    (5, 4, 'NOT_RESPONDED'),
-    (2, 3, 'REJECTED'),
-    (3, 4, 'NOT_RESPONDED')
+    (1, 1, 'OPEN'),
+    (4, 2, 'CLOSED'),
+    (5, 4, 'OPEN'),
+    (2, 3, 'CLOSED'),
+    (3, 4, 'OPEN')
 ;
 
 INSERT INTO message(
