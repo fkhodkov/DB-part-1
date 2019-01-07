@@ -144,7 +144,7 @@ INSERT INTO experience(
 INSERT INTO application(
   resume_id,
   vacancy_id,
-  status
+  application_status
 ) VALUES
     (1, 1, 'INTERVIEW_INVITED'),
     (4, 2, 'REJECTED'),
