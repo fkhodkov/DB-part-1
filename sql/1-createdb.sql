@@ -11,6 +11,7 @@ DROP TABLE if EXISTS account CASCADE;
 DROP TABLE if EXISTS employer_account CASCADE;
 DROP TYPE IF EXISTS SCHEDULE_T CASCADE;
 DROP TYPE IF EXISTS APPLICATION_STATUS_T CASCADE;
+DROP TYPE IF EXISTS VACANCY_STATUS_T CASCADE;
 
 CREATE TABLE account (
   account_id SERIAL PRIMARY KEY,
@@ -56,6 +57,11 @@ CREATE TABLE city (
   NAME VARCHAR(100)
 );
 
+CREATE TYPE VACANCY_STATUS_T AS ENUM (
+  'OPEN',
+  'CLOSED'
+);
+
 CREATE TABLE vacancy (
   vacancy_id SERIAL PRIMARY KEY,
   employer_id INTEGER REFERENCES employer NOT NULL,
@@ -64,7 +70,8 @@ CREATE TABLE vacancy (
   salary INT4RANGE,
   experience_years_key VARCHAR(16) REFERENCES experience_years_translation NOT NULL,
   schedule SCHEDULE_T,
-  description TEXT
+  description TEXT,
+  vacancy_status VACANCY_STATUS_T NOT NULL
 );
 
 CREATE TABLE applicant (
