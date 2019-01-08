@@ -26,8 +26,8 @@ WITH created_employer AS (
 -- 4. Мы — компания, зарегистрированная на сайте огненного стартапа как
 -- работодатель, и хотим разместить вакансию.
 -- 4.1 Узнаем id нашей компании
-SELECT employer_id FROM employer JOIN employer_account USING (employer_id)
- WHERE account_id = 12 AND employer.title = 'Epiphyte Corporation';
+SELECT employer_id, title FROM employer JOIN employer_account USING (employer_id)
+ WHERE account_id = 12;
 -- 4.2 Создадим вакансию
 INSERT INTO vacancy (
   employer_id, title, city_id, salary, experience_years, schedule, vacancy_status)
@@ -36,7 +36,7 @@ VALUES (6, 'Java-программист', 1, INT4RANGE(50000, 100000), '1-3', 'F
 -- 5. Мы — компания, у которой есть открытая вакансия, и хотим найти резюме,
 -- которые подходят к этой вакансии, чтобы отправить приглашения.
 -- 5.1 Узнаем id нашей вакансии
-SELECT vacancy_id FROM vacancy WHERE employer_id = 6;
+SELECT vacancy_id, title FROM vacancy WHERE employer_id = 6;
 -- 5.2 Найдет подходящие резюме
 SELECT resume_id, applicant.name, resume.experience_years, resume.salary
   FROM vacancy JOIN resume USING (title, city_id, schedule)

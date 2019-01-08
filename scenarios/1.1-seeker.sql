@@ -34,7 +34,7 @@ INSERT INTO resume (
   INT4RANGE(50000, NULL)
 );
 -- 3.3 Узнаем id нашего резюме
-SELECT resume_id FROM resume WHERE applicant_id = 6;
+SELECT resume_id, title FROM resume WHERE applicant_id = 6;
 -- 3.4 Добавим опыт работы
 INSERT INTO experience (resume_id, employer, job_title, job_description, dates)
 VALUES (
