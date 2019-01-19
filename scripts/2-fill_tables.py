@@ -16,6 +16,8 @@ resumes_per_applicant = 3
 applications_number = 5000000
 messages_per_application = 3
 
+vacancies_number = employers_number * vacancies_per_employer
+
 experience_years = ['0-1', '1-3', '3-6', '6+', 'ANY']
 jobs = {'0-1': 1, '1-3': 1, '3-6': 2, '6+': 3}
 start_dates = {
@@ -37,37 +39,34 @@ status = ['OPEN', 'CLOSED']
 cities = ['Москва', 'Санкт-Петербург', 'Владивосток', 'Челябинск', 'Нью-Йорк',
           'Красногорск', 'Истра', 'Дедовск', 'Сочи', 'Нахабино']
 
-insert_city = "INSERT INTO external_city(city_id, name) \
-VALUES (%(city_id)s, %(name)s)"
-for city_id, name in enumerate(cities):
-    cur.execute(insert_city, {'city_id': city_id, 'name': name})
-
-conn.commit()
+print("================ CITY ================")
+insert_city = "INSERT INTO external_city(name) VALUES (%(name)s)"
+for name in cities:
+    cur.execute(insert_city, {'name': name})
 
 # Generate employers and vacancies
-insert_account = "INSERT INTO external_account(account_id, login, email, password) \
-VALUES (%(account_id)s, %(login)s, %(email)s, crypt(%(password)s, gen_salt('bf')))"
+insert_account = "INSERT INTO external_account(login, email, password) \
+VALUES (%(login)s, %(email)s, crypt(%(password)s, gen_salt('bf')))"
 
-insert_employer = "INSERT INTO external_employer(employer_id, title) \
-VALUES (%(employer_id)s, %(title)s)"
+insert_employer = "INSERT INTO external_employer(title) VALUES (%(title)s)"
 
 insert_employer_account = "INSERT INTO external_employer_account\
-(employer_id, account_id) \
-VALUES (%(employer_id)s, %(account_id)s)"
+(employer_id, account_id) VALUES (%(employer_id)s, %(account_id)s)"
 
 insert_vacancy = "INSERT INTO external_vacancy\
-(vacancy_id, employer_id, title, city_id, salary, experience_years, schedule,\
-description, vacancy_status)\
-VALUES (%(vacancy_id)s, %(employer_id)s, %(title)s, %(city_id)s, \
+(employer_id, title, city_id, salary, experience_years, schedule, description,\
+vacancy_status)\
+VALUES (%(employer_id)s, %(title)s, %(city_id)s, \
 INT4RANGE(%(salary_min)s, %(salary_max)s), %(experience_years)s, %(schedule)s,\
 %(description)s, %(vacancy_status)s)"
 
+print("================ EMPLOYER ================")
 account_id = 0
 vacancy_id = 0
+employer_account_id = 0
 for employer_id in range(1, 1+employers_number):
     account_id += 1
     cur.execute(insert_account, {
-        'account_id': account_id,
         'login': 'account%d' % account_id,
         'email': '%d@email' % account_id,
         'password': 'password%d' % account_id
@@ -78,18 +77,17 @@ for employer_id in range(1, 1+employers_number):
         'title': 'Работодатель %d' % employer_id
     })
 
+    employer_account_id += 1
     cur.execute(insert_employer_account, {
-        'employer_id': account_id,
-        'account_id': employer_id
+        'employer_id': employer_id,
+        'account_id': account_id
     })
 
     for vacancy_num in range(vacancies_per_employer):
-        vacancy_id += 1
         cur.execute(insert_vacancy, {
-            'vacancy_id': vacancy_id,
             'employer_id': employer_id,
             'title': 'Должность %d' % vacancy_num,
-            'city_id': employer_id % len(cities),
+            'city_id': 1 + (employer_id % len(cities)),
             'salary_min': 10000 * (vacancy_num+1),
             'salary_max': 10000 * (vacancy_num+2),
             'experience_years': experience_years[
@@ -99,39 +97,33 @@ for employer_id in range(1, 1+employers_number):
             'vacancy_status': status[vacancy_num % len(status)]
         })
 
-    conn.commit()
-
 # Generate applicants and resumes
-insert_applicant = "INSERT INTO external_applicant\
-(applicant_id, name, account_id) \
-VALUES (%(applicant_id)s, %(name)s, %(account_id)s)"
+insert_applicant = "INSERT INTO external_applicant (name, account_id) \
+VALUES (%(name)s, %(account_id)s)"
 
 insert_resume = "INSERT INTO external_resume\
-(resume_id, applicant_id, title, city_id, salary,\
-experience_years, schedule, text) \
-VALUES (%(resume_id)s, %(applicant_id)s, %(title)s, %(city_id)s, \
+(applicant_id, title, city_id, salary, experience_years, schedule, text) \
+VALUES (%(applicant_id)s, %(title)s, %(city_id)s, \
 INT4RANGE(%(salary_min)s, %(salary_max)s), %(experience_years)s, %(schedule)s,\
 %(text)s)"
 
 insert_experience = "INSERT INTO external_experience\
-(experience_id, resume_id, employer, job_title, job_description, dates) \
-VALUES (%(experience_id)s, %(resume_id)s, %(employer)s, %(job_title)s,\
-%(job_description)s, DATERANGE(%(start_date)s, %(end_date)s))"
+(resume_id, employer, job_title, job_description, dates) \
+VALUES (%(resume_id)s, %(employer)s, %(job_title)s, %(job_description)s, \
+DATERANGE(%(start_date)s, %(end_date)s))"
 
+print("================ APPLICANT ================")
 resume_id = 0
 experience_id = 0
 for applicant_id in range(1, 1+applicants_number):
     account_id += 1
     cur.execute(insert_account, {
-        'account_id': account_id,
         'login': 'account%d' % account_id,
         'email': '%d@email' % account_id,
         'password': 'password%d' % account_id
     })
 
-    applicant_id += 1
     cur.execute(insert_applicant, {
-        'applicant_id': applicant_id,
         'name': 'Соискатель %d' % applicant_id,
         'account_id': account_id
     })
@@ -141,10 +133,9 @@ for applicant_id in range(1, 1+applicants_number):
         experience = experience_years[
             applicant_id % (len(experience_years) - 1)]
         cur.execute(insert_resume, {
-            'resume_id': resume_id,
             'applicant_id': applicant_id,
             'title': 'Должность %d' % 2*resume_num,
-            'city_id': applicant_id % len(cities),
+            'city_id': 1 + (applicant_id % len(cities)),
             'salary_min': 20000 * (resume_num+1),
             'salary_max': 20000 * (resume_num+2),
             'experience_years': experience,
@@ -155,7 +146,6 @@ for applicant_id in range(1, 1+applicants_number):
         for job_num in range(jobs[experience]):
             experience_id += 1
             cur.execute(insert_experience, {
-                'experience_id': experience_id,
                 'resume_id': resume_id,
                 'employer': 'Работодатель %d-%d' % (applicant_id, job_num),
                 'job_title': 'Работа %d-%d' % (applicant_id, job_num),
@@ -164,25 +154,21 @@ for applicant_id in range(1, 1+applicants_number):
                 'end_date': end_dates[experience][job_num]
             })
 
-    conn.commit()
-
 # Generate applications and messages
 insert_application = "INSERT INTO external_application\
-(application_id, resume_id, vacancy_id, application_status) \
-VALUES (%(application_id)s, %(resume_id)s, %(vacancy_id)s,\
-%(application_status)s)"
+(resume_id, vacancy_id, application_status) \
+VALUES (%(resume_id)s, %(vacancy_id)s, %(application_status)s)"
 
 insert_message = "INSERT INTO external_message\
-(message_id, application_id, created, applicant_to_employer, text)\
-VALUES (%(message_id)s, %(application_id)s, %(created)s,\
-%(applicant_to_employer)s, %(text)s)"
+(application_id, created, applicant_to_employer, text)\
+VALUES (%(application_id)s, %(created)s, %(applicant_to_employer)s, %(text)s)"
 
+print("================ MESSAGE ================")
 message_id = 0
 for application_id in range(1, 1+applications_number):
-    vacancy = random.randint(1, vacancy_id)
+    vacancy = random.randint(1, vacancies_number)
     resume = random.randint(1, resume_id)
     cur.execute(insert_application, {
-        'application_id': application_id,
         'resume_id': resume,
         'vacancy_id': vacancy,
         'application_status': status[application_id % 2]
@@ -191,7 +177,6 @@ for application_id in range(1, 1+applications_number):
     for message_num in range(messages_per_application):
         message_id += 1
         cur.execute(insert_message, {
-            'message_id': message_id,
             'application_id': application_id,
             'applicant_to_employer': (application_id + message_num) % 2 == 0,
             'text': 'Сообщение %d' % message_id,
@@ -202,7 +187,20 @@ for application_id in range(1, 1+applications_number):
                 seconds=random.randint(0, 60))
         })
 
-    conn.commit()
+tables = ['city', 'account', 'employer', 'employer_account', 'vacancy',
+          'applicant', 'resume', 'experience', 'application', 'message']
+
+for table in tables:
+    cur.execute("ALTER TABLE external_%s ADD COLUMN %s_id SERIAL" %
+                (table, table))
+    cur.execute("CREATE INDEX external_%s_idx ON external_%s(%s_id)" %
+                (table, table, table))
+conn.commit()
+
+conn.autocommit = True
+for table in tables:
+    cur.execute('VACUUM ANALYZE external_' + table)
+conn.autocommit = False
 
 cur.close()
 conn.close()
