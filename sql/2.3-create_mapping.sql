@@ -1,21 +1,3 @@
-DROP TABLE IF EXISTS external_stats;
-CREATE TABLE external_stats (
-  table_name VARCHAR(50) PRIMARY KEY,
-  volume INTEGER
-);
-
-INSERT INTO external_stats (table_name, volume) VALUES
-('city', (SELECT COUNT(*) from external_city)),
-('account', (SELECT COUNT(*) from external_account)),
-('employer', (SELECT COUNT(*) from external_employer)),
-('employer_account', (SELECT COUNT(*) from external_employer_account)),
-('vacancy', (SELECT COUNT(*) from external_vacancy)),
-('applicant', (SELECT COUNT(*) from external_applicant)),
-('resume', (SELECT COUNT(*) from external_resume)),
-('experience', (SELECT COUNT(*) from external_experience)),
-('application', (SELECT COUNT(*) from external_application)),
-('message', (SELECT COUNT(*) from external_message));
-
 ALTER TABLE external_city ADD COLUMN city_id INTEGER;
 ALTER TABLE external_city ADD COLUMN need_to_insert BOOLEAN DEFAULT TRUE;
 UPDATE external_city
