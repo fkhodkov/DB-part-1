@@ -6,7 +6,6 @@ psql ${DB_NAME} -f scenarios/1.1-seeker.sql
 psql ${DB_NAME} -f scenarios/1.2-employer.sql
 psql ${DB_NAME} -f sql/2.1-generate_tables.sql
 python3 scripts/2.2-generate_data.py ${DB_NAME}
-python3 scripts/2.3-generate_stats.py ${DB_NAME}
+psql ${DB_NAME} -f sql/2.3-generate_stats.sql
 psql ${DB_NAME} -f sql/2.4-copy_functions.sql
-python3 scripts/2.5-more_copy_functions.py ${DB_NAME}
-python3 scripts/2.6-copy_data.py ${DB_NAME}
+python3 scripts/2.5-copy_data.py ${DB_NAME}
