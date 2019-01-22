@@ -1,8 +1,7 @@
 DROP TABLE IF EXISTS external_stats;
 CREATE TABLE external_stats (
   table_name VARCHAR(50) PRIMARY KEY,
-  volume INTEGER,
-  id_offset INTEGER
+  volume INTEGER
 );
 
 INSERT INTO external_stats (table_name, volume) VALUES
@@ -17,137 +16,106 @@ INSERT INTO external_stats (table_name, volume) VALUES
 ('application', (SELECT COUNT(*) from external_application)),
 ('message', (SELECT COUNT(*) from external_message));
 
-BEGIN;
-  LOCK city;
-  SELECT last_value INTO TEMP city_tmp FROM city_city_id_seq;
-  SELECT setval(
-    'city_city_id_seq',
-    (SELECT last_value FROM city_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'city'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM city_tmp)
-   WHERE table_name = 'city';
-  DROP SEQUENCE IF EXISTS external_city_seq;
-  CREATE SEQUENCE external_city_seq;
-  SELECT setval('external_city_seq', (SELECT last_value from city_tmp));
-COMMIT;
+ALTER TABLE external_city ADD COLUMN city_id INTEGER;
+ALTER TABLE external_city ADD COLUMN need_to_insert BOOLEAN DEFAULT TRUE;
+UPDATE external_city
+   SET city_id = nextval('city_city_id_seq');
+UPDATE external_city
+   SET city_id = city.city_id, need_to_insert = FALSE
+       FROM city JOIN external_city AS es USING (name)
+ WHERE external_city.external_city_id = es.external_city_id;
 
-BEGIN;
-  LOCK account;
-  SELECT last_value INTO TEMP account_tmp FROM account_account_id_seq;
-  SELECT setval(
-    'account_account_id_seq',
-    (SELECT last_value FROM account_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'account'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM account_tmp)
-   WHERE table_name = 'account';
-  DROP SEQUENCE IF EXISTS external_account_seq;
-  CREATE SEQUENCE external_account_seq;
-  SELECT setval('external_account_seq',(SELECT last_value from account_tmp));
-COMMIT;
+ALTER TABLE external_account ADD COLUMN account_id INTEGER;
+UPDATE external_account
+   SET account_id = nextval('account_account_id_seq');
 
-BEGIN;
-  LOCK employer;
-  SELECT last_value INTO TEMP employer_tmp FROM employer_employer_id_seq;
-  SELECT setval(
-    'employer_employer_id_seq',
-    (SELECT last_value FROM employer_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'employer'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM employer_tmp)
-   WHERE table_name = 'employer';
-  DROP SEQUENCE IF EXISTS external_employer_seq;
-  CREATE SEQUENCE external_employer_seq;
-  SELECT setval('external_employer_seq', (SELECT last_value from employer_tmp));
-COMMIT;
+ALTER TABLE external_employer ADD COLUMN employer_id INTEGER;
+UPDATE external_employer
+   SET employer_id = nextval('employer_employer_id_seq');
 
-BEGIN;
-  LOCK vacancy;
-  SELECT last_value INTO TEMP vacancy_tmp FROM vacancy_vacancy_id_seq;
-  SELECT setval(
-    'vacancy_vacancy_id_seq',
-    (SELECT last_value FROM vacancy_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'vacancy'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM vacancy_tmp)
-   WHERE table_name = 'vacancy';
-  DROP SEQUENCE IF EXISTS external_vacancy_seq;
-  CREATE SEQUENCE external_vacancy_seq;
-  SELECT setval('external_vacancy_seq', (SELECT last_value from vacancy_tmp));
-COMMIT;
+ALTER TABLE external_employer_account ADD COLUMN account_id INTEGER;
+ALTER TABLE external_employer_account ADD COLUMN employer_id INTEGER;
+UPDATE external_employer_account
+   SET account_id = external_account.account_id
+       FROM external_account
+ WHERE external_employer_account.external_account_id =
+       external_account.external_account_id;
+UPDATE external_employer_account
+   SET employer_id = external_employer.employer_id
+       FROM external_employer
+ WHERE external_employer_account.external_employer_id =
+       external_employer.external_employer_id;
 
-BEGIN;
-  LOCK applicant;
-  SELECT last_value INTO TEMP applicant_tmp FROM applicant_applicant_id_seq;
-  SELECT setval(
-    'applicant_applicant_id_seq',
-    (SELECT last_value FROM applicant_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'applicant'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM applicant_tmp)
-   WHERE table_name = 'applicant';
-  DROP SEQUENCE IF EXISTS external_applicant_seq;
-  CREATE SEQUENCE external_applicant_seq;
-  SELECT setval('external_applicant_seq', (SELECT last_value from applicant_tmp));
-COMMIT;
+ALTER TABLE external_vacancy ADD COLUMN vacancy_id INTEGER;
+ALTER TABLE external_vacancy ADD COLUMN employer_id INTEGER;
+ALTER TABLE external_vacancy ADD COLUMN city_id INTEGER;
+UPDATE external_vacancy
+   SET vacancy_id = nextval('vacancy_vacancy_id_seq');
+UPDATE external_vacancy
+   SET city_id = external_city.city_id FROM external_city
+ WHERE external_vacancy.external_city_id = external_city.external_city_id;
+UPDATE external_vacancy
+   SET employer_id = external_employer.employer_id
+       FROM external_employer
+ WHERE external_vacancy.external_employer_id =
+       external_employer.external_employer_id;
 
-BEGIN;
-  LOCK resume;
-  SELECT last_value INTO TEMP resume_tmp FROM resume_resume_id_seq;
-  SELECT setval(
-    'resume_resume_id_seq',
-    (SELECT last_value FROM resume_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'resume'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM resume_tmp)
-   WHERE table_name = 'resume';
-  DROP SEQUENCE IF EXISTS external_resume_seq;
-  CREATE SEQUENCE external_resume_seq;
-  SELECT setval('external_resume_seq', (SELECT last_value from resume_tmp));
-COMMIT;
+ALTER TABLE external_applicant ADD COLUMN applicant_id INTEGER;
+ALTER TABLE external_applicant ADD COLUMN account_id INTEGER;
+UPDATE external_applicant
+   SET applicant_id = nextval('applicant_applicant_id_seq');
+UPDATE external_applicant
+   SET account_id = external_account.account_id
+       FROM external_account
+ WHERE external_applicant.external_account_id =
+       external_account.external_account_id;
 
-BEGIN;
-  LOCK experience;
-  SELECT last_value INTO TEMP experience_tmp FROM experience_experience_id_seq;
-  SELECT setval(
-    'experience_experience_id_seq',
-    (SELECT last_value FROM experience_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'experience'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM experience_tmp)
-   WHERE table_name = 'experience';
-  DROP SEQUENCE IF EXISTS external_experience_seq;
-  CREATE SEQUENCE external_experience_seq;
-  SELECT setval('external_experience_seq', (SELECT last_value from experience_tmp));
-COMMIT;
+ALTER TABLE external_resume ADD COLUMN resume_id INTEGER;
+ALTER TABLE external_resume ADD COLUMN applicant_id INTEGER;
+ALTER TABLE external_resume ADD COLUMN city_id INTEGER;
+UPDATE external_resume
+   SET resume_id = nextval('resume_resume_id_seq');
+UPDATE external_resume
+   SET city_id = external_city.city_id FROM external_city
+ WHERE external_resume.external_city_id = external_city.external_city_id;
+UPDATE external_resume
+   SET applicant_id = external_applicant.applicant_id
+       FROM external_applicant
+ WHERE external_resume.external_applicant_id =
+       external_applicant.external_applicant_id;
 
-BEGIN;
-  LOCK application;
-  SELECT last_value INTO TEMP application_tmp FROM application_application_id_seq;
-  SELECT setval(
-    'application_application_id_seq',
-    (SELECT last_value FROM application_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'application'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM application_tmp)
-   WHERE table_name = 'application';
-  DROP SEQUENCE IF EXISTS external_application_seq;
-  CREATE SEQUENCE external_application_seq;
-  SELECT setval('external_application_seq', (SELECT last_value from application_tmp));
-COMMIT;
+ALTER TABLE external_experience ADD COLUMN experience_id INTEGER;
+ALTER TABLE external_experience ADD COLUMN resume_id INTEGER;
+UPDATE external_experience
+   SET experience_id = nextval('experience_experience_id_seq');
+UPDATE external_experience
+   SET resume_id = external_resume.resume_id
+       FROM external_resume
+ WHERE external_experience.external_resume_id =
+       external_resume.external_resume_id;
 
-BEGIN;
-  LOCK message;
-  SELECT last_value INTO TEMP message_tmp FROM message_message_id_seq;
-  SELECT setval(
-    'message_message_id_seq',
-    (SELECT last_value FROM message_tmp) +
-    (SELECT volume FROM external_stats WHERE table_name = 'message'));
-  UPDATE external_stats
-     SET id_offset = (SELECT last_value FROM message_tmp)
-   WHERE table_name = 'message';
-  DROP SEQUENCE IF EXISTS external_message_seq;
-  CREATE SEQUENCE external_message_seq;
-  SELECT setval('external_message_seq', (SELECT last_value from message_tmp));
-COMMIT;
+ALTER TABLE external_application ADD COLUMN application_id INTEGER;
+ALTER TABLE external_application ADD COLUMN resume_id INTEGER;
+ALTER TABLE external_application ADD COLUMN vacancy_id INTEGER;
+UPDATE external_application
+   SET application_id = nextval('application_application_id_seq');
+UPDATE external_application
+   SET vacancy_id = external_vacancy.vacancy_id
+       FROM external_vacancy
+ WHERE external_application.external_vacancy_id =
+       external_vacancy.external_vacancy_id;
+UPDATE external_application
+   SET resume_id = external_resume.resume_id
+       FROM external_resume
+ WHERE external_application.external_resume_id =
+       external_resume.external_resume_id;
+
+ALTER TABLE external_message ADD COLUMN message_id INTEGER;
+ALTER TABLE external_message ADD COLUMN application_id INTEGER;
+UPDATE external_message
+   SET message_id = nextval('message_message_id_seq');
+UPDATE external_message
+   SET application_id = external_application.application_id
+       FROM external_application
+ WHERE external_message.external_application_id =
+       external_application.external_application_id;

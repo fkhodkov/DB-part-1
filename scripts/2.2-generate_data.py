@@ -51,10 +51,10 @@ VALUES (%(login)s, %(email)s, crypt(%(password)s, gen_salt('bf')))"
 insert_employer = "INSERT INTO external_employer(title) VALUES (%(title)s)"
 
 insert_employer_account = "INSERT INTO external_employer_account\
-(employer_id, account_id) VALUES (%(employer_id)s, %(account_id)s)"
+(external_employer_id, external_account_id) VALUES (%(employer_id)s, %(account_id)s)"
 
 insert_vacancy = "INSERT INTO external_vacancy\
-(employer_id, title, city_id, salary, experience_years, schedule, description,\
+(external_employer_id, title, external_city_id, salary, experience_years, schedule, description,\
 vacancy_status)\
 VALUES (%(employer_id)s, %(title)s, %(city_id)s, \
 INT4RANGE(%(salary_min)s, %(salary_max)s), %(experience_years)s, %(schedule)s,\
@@ -98,17 +98,17 @@ for employer_id in range(1, 1+employers_number):
         })
 
 # Generate applicants and resumes
-insert_applicant = "INSERT INTO external_applicant (name, account_id) \
+insert_applicant = "INSERT INTO external_applicant (name, external_account_id) \
 VALUES (%(name)s, %(account_id)s)"
 
 insert_resume = "INSERT INTO external_resume\
-(applicant_id, title, city_id, salary, experience_years, schedule, text) \
+(external_applicant_id, title, external_city_id, salary, experience_years, schedule, text) \
 VALUES (%(applicant_id)s, %(title)s, %(city_id)s, \
 INT4RANGE(%(salary_min)s, %(salary_max)s), %(experience_years)s, %(schedule)s,\
 %(text)s)"
 
 insert_experience = "INSERT INTO external_experience\
-(resume_id, employer, job_title, job_description, dates) \
+(external_resume_id, employer, job_title, job_description, dates) \
 VALUES (%(resume_id)s, %(employer)s, %(job_title)s, %(job_description)s, \
 DATERANGE(%(start_date)s, %(end_date)s))"
 
@@ -156,11 +156,11 @@ for applicant_id in range(1, 1+applicants_number):
 
 # Generate applications and messages
 insert_application = "INSERT INTO external_application\
-(resume_id, vacancy_id, application_status) \
+(external_resume_id, external_vacancy_id, application_status) \
 VALUES (%(resume_id)s, %(vacancy_id)s, %(application_status)s)"
 
 insert_message = "INSERT INTO external_message\
-(application_id, created, applicant_to_employer, text)\
+(external_application_id, created, applicant_to_employer, text)\
 VALUES (%(application_id)s, %(created)s, %(applicant_to_employer)s, %(text)s)"
 
 print("================ MESSAGE ================")
@@ -191,9 +191,7 @@ tables = ['city', 'account', 'employer', 'employer_account', 'vacancy',
           'applicant', 'resume', 'experience', 'application', 'message']
 
 for table in tables:
-    cur.execute("ALTER TABLE external_%s ADD COLUMN %s_id SERIAL" %
-                (table, table))
-    cur.execute("CREATE INDEX external_%s_idx ON external_%s(%s_id)" %
+    cur.execute("CREATE INDEX external_%s_idx ON external_%s(external_%s_id)" %
                 (table, table, table))
 conn.commit()
 
