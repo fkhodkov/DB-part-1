@@ -12,9 +12,7 @@ N = 10000
 
 for table in tables:
     print("===== TABLE: ", table, "=====")
-    cur.execute(
-        "SELECT volume FROM external_volumes WHERE table_name=%s",
-        (table,))
+    cur.execute("SELECT count(*) FROM external_%s " % table)
     (volume,) = cur.fetchone()
     for start in range(0, volume + 1, N):
         cur.execute("SELECT copy_%s(%d)" % (table, start))
