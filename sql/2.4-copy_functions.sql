@@ -42,7 +42,7 @@ BEGIN
            external_account_id <= starting + 10000)
     LOOP INSERT INTO account VALUES (
       matching.account_id,
-      matching.login,
+      (SELECT external_unique_login(matching.account_id, matching.login)),
       matching.email,
       matching.password
     );

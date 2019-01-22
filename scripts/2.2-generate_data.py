@@ -44,6 +44,22 @@ insert_city = "INSERT INTO external_city(name) VALUES (%(name)s)"
 for name in cities:
     cur.execute(insert_city, {'name': name})
 
+# Create some name conflicts
+insert_old_account = "INSERT INTO account(login, email, password) \
+VALUES (%(login)s, %(email)s, crypt(%(password)s, gen_salt('bf')))"
+old_accounts = set()
+for i in range(500):
+    acc_id = 1
+    while acc_id in old_accounts:
+        acc_id = random.randint(1, employers_number + applicants_number)
+    old_accounts.add(acc_id)
+for acc_id in old_accounts:
+    cur.execute(insert_old_account, {
+        'login': 'account%s' % acc_id,
+        'email': 'dup_email%s' % acc_id,
+        'password': 'password%s' % acc_id
+    })
+
 # Generate employers and vacancies
 insert_account = "INSERT INTO external_account(login, email, password) \
 VALUES (%(login)s, %(email)s, crypt(%(password)s, gen_salt('bf')))"
