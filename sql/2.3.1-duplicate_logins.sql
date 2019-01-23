@@ -6,7 +6,7 @@ CREATE TABLE duplicate_logins (
 );
 
 DROP INDEX IF EXISTS login_idx;
-CREATE INDEX login_idx ON account(login);
+CREATE INDEX CONCURRENTLY login_idx ON account(login);
 VACUUM ANALYZE account;
 
 DROP FUNCTION IF EXISTS external_unique_login;
@@ -22,6 +22,7 @@ BEGIN
     new_login := '@ext_login' || account_id || '_' || additional;
     WHILE (SELECT EXISTS (SELECT 1 FROM account WHERE login = new_login)) LOOP
       additional := additional + 1;
+      new_login := '@ext_login' || account_id || '_' || additional;
     END loop;
     RETURN new_login;
   ELSE 
