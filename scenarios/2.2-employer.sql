@@ -66,13 +66,16 @@ SELECT vacancy_id, title INTO TEMP scenario2_vacancy
  WHERE employer_id = (SELECT employer_id FROM scenario2_employer);
 -- 5.2 Найдет подходящие резюме
 EXPLAIN ANALYZE
+WITH my_vacancy AS (
+  SELECT title, city_id, schedule, salary, experience_years
+    FROM vacancy WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy))
 SELECT resume_id, applicant.name, resume.experience_years, resume.salary
-  FROM vacancy JOIN resume USING (title, city_id, schedule)
-         JOIN applicant USING (applicant_id)
- WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy) AND
-       (vacancy.experience_years = 'ANY' OR
-       vacancy.experience_years = resume.experience_years) AND
-       vacancy.salary && resume.salary;
+  FROM resume JOIN applicant USING (applicant_id)
+ WHERE resume.title = (SELECT title FROM my_vacancy) AND
+       resume.city_id = (SELECT city_id FROM my_vacancy) AND
+       resume.schedule = (SELECT schedule FROM my_vacancy) AND
+       resume.experience_years = (SELECT experience_years FROM my_vacancy) AND
+       resume.salary && (SELECT salary FROM my_vacancy);
 
 -- 6. Мы нашли подходящие резюме и хотим отправить приглашения
 -- 6.1 Отправляем приглашения

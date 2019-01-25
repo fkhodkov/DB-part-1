@@ -69,13 +69,17 @@ VALUES (
 -- 4. Я соискатель с готовым резюме и хочу найти вакансии, которые подходят к
 -- этому резюме.
 EXPLAIN ANALYZE
+WITH my_resume AS (
+  SELECT title, city_id, schedule, salary, experience_years
+    FROM resume WHERE resume_id = (SELECT resume_id FROM scenario2_resume))
 SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vacancy.salary
-  FROM vacancy JOIN resume USING (title, city_id, schedule)
-         JOIN employer USING (employer_id)
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume) AND
+  FROM vacancy JOIN employer USING (employer_id)
+ WHERE vacancy.title = (SELECT title FROM my_resume) AND
+       vacancy.city_id = (SELECT city_id FROM my_resume) AND
+       vacancy.schedule = (SELECT schedule FROM my_resume) AND
        (vacancy.experience_years = 'ANY' OR
-       vacancy.experience_years = resume.experience_years) AND
-       vacancy.salary && resume.salary;
+        vacancy.experience_years = (SELECT experience_years FROM my_resume)) AND
+       vacancy.salary && (SELECT salary FROM my_resume);
 
 -- 5. Я нашел нужные вакансии и хочу отправить свое резюме и сообщение
 -- работодателям, чтобы начать переписку.
