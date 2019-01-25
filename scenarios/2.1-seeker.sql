@@ -1,16 +1,12 @@
 \pset pager off
 
 -- Часть I. «Соискатель»
-CREATE SEQUENCE IF NOT EXISTS scenario2_applicant_seq;
-SELECT 'johndoe' || nextval('scenario2_applicant_seq') AS login
-  INTO TEMP scenario2_applicant_login;
-
 -- 1. Я ищу работу и хочу зарегистрироваться на сайте огненного стартапа как
 -- соискатель, чтобы размещать резюме и искать вакансии
 EXPLAIN ANALYZE
 WITH created_account AS (
   INSERT INTO account (login, email, password)
-  VALUES ((SELECT login FROM scenario2_applicant_login),
+  VALUES ((SELECT 'johndoe' || nextval('scenario2_applicant_seq')),
           'johndoe@email',
           crypt('qwerty', gen_salt('bf'))
   ) RETURNING account_id)
@@ -22,16 +18,16 @@ WITH created_account AS (
 EXPLAIN ANALYZE
 SELECT account_id
   FROM account
- WHERE login=(SELECT login FROM scenario2_applicant_login)
+ WHERE login='johndoe1'
    AND password=crypt('qwerty', password);
 
 -- 3. Я авторизованный пользователь огненного стартапа и хочу создать резюме,
 -- чтобы откликаться на вакансии
 -- 3.1 Узнаем свой applicant_id
 EXPLAIN ANALYZE
-SELECT account_id, applicant_id INTO TEMP scenario2_applicant
+SELECT account_id, applicant_id
   FROM applicant JOIN account USING (account_id)
- WHERE login = (SELECT login FROM scenario2_applicant_login);
+ WHERE login = 'johndoe1';
 -- 3.2 Создадим резюме
 EXPLAIN ANALYZE
 INSERT INTO resume (
@@ -42,7 +38,7 @@ INSERT INTO resume (
   schedule,
   salary
 ) VALUES (
-  (SELECT applicant_id FROM scenario2_applicant),
+  1000007,
   'Архитектор БД',
   1,
   '0-1',
@@ -51,13 +47,13 @@ INSERT INTO resume (
 );
 -- 3.3 Узнаем id нашего резюме
 EXPLAIN ANALYZE
-SELECT resume_id, title INTO TEMP scenario2_resume FROM resume
- WHERE applicant_id = (SELECT applicant_id FROM scenario2_applicant);
+SELECT resume_id, title FROM resume
+ WHERE applicant_id = 1000007;
 -- 3.4 Добавим опыт работы
 EXPLAIN ANALYZE
 INSERT INTO experience (resume_id, employer, job_title, job_description, dates)
 VALUES (
-  (SELECT resume_id FROM scenario2_resume),
+  3000008,
   'Огненный стартап',
   'Архитектор БД',
   'Задачи:
@@ -71,7 +67,7 @@ VALUES (
 EXPLAIN ANALYZE
 WITH my_resume AS (
   SELECT title, city_id, schedule, salary, experience_years
-    FROM resume WHERE resume_id = (SELECT resume_id FROM scenario2_resume))
+    FROM resume WHERE resume_id = 3000008)
 SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vacancy.salary
   FROM vacancy JOIN employer USING (employer_id)
  WHERE vacancy.title = (SELECT title FROM my_resume) AND
@@ -86,12 +82,12 @@ SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vaca
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 6, 'OPEN')
+  VALUES (3000008, 6, 'OPEN')
          RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM created_application),
+  5000012,
   'Добрый вечер!
   Прошу рассмотреть мою кандидатуру на должно Архитектора БД.',
   TRUE,
@@ -99,15 +95,15 @@ WITH created_application AS (
 );
 
 EXPLAIN ANALYZE
-SELECT application_id INTO TEMP scenario2_application1
+SELECT application_id
   FROM application
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume) AND
+ WHERE resume_id = 3000008 AND
        vacancy_id = 6;
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 7, 'OPEN')
+  VALUES (3000008, 7, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -122,7 +118,7 @@ WITH created_application AS (
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 8, 'OPEN')
+  VALUES (3000008, 8, 'OPEN')
          RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -135,9 +131,9 @@ WITH created_application AS (
 );
 
 EXPLAIN ANALYZE
-SELECT application_id INTO TEMP scenario2_application2
+SELECT application_id
   FROM application
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume) AND
+ WHERE resume_id = 3000008 AND
        vacancy_id = 8;
 
 -- 5.1 На некоторые из откликов пришли ответы
@@ -145,7 +141,7 @@ EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_application1),
+  5000012,
   'Добрый вечер!
 В дополнение к тому, что указано в вакансии, добавляем:
   * рабочий день составляет 25 часов в сутки,
@@ -160,7 +156,7 @@ EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_application2),
+  5000014,
   'Добрый вечер!
 Решите, пожалуйста, тестовое задание.  
 Вы можете скачать его по ссылке:
@@ -176,7 +172,7 @@ SELECT application_id, employer.title, vacancy.salary, message.text
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN employer USING (employer_id)
          JOIN message USING (application_id)
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume)
+ WHERE resume_id = 3000008
    AND NOT applicant_to_employer;
 
 -- 7. Я соискатель, который в ходе переписки с работодателем решил, что не
@@ -187,7 +183,7 @@ BEGIN;
   INSERT INTO message (
     application_id, text, applicant_to_employer, created
   ) VALUES (
-    (SELECT application_id FROM scenario2_application1),
+    5000012,
     'Здравствуйте,
 К сожалению, по итогам длительных размышлений я пришел к выводу,
 что вынужден отказаться от Вашей вакансии.
@@ -197,7 +193,7 @@ BEGIN;
   );
   EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE application_id = (SELECT application_id FROM scenario2_application1);
+   WHERE application_id = 5000012;
 END;
 
 -- 8. Я соискатель, который получил от работодателя предложение, которое меня
@@ -208,7 +204,7 @@ BEGIN;
   INSERT INTO message (
     application_id, text, applicant_to_employer, created
   ) VALUES (
-    (SELECT application_id FROM scenario2_application2),
+    5000014,
     'Здравствуйте,
 Я принимаю Ваше предложение.  С нетерпением жду начала работы!',
     TRUE,
@@ -216,5 +212,5 @@ BEGIN;
   );
   EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE application_id = (SELECT application_id FROM scenario2_application2);
+   WHERE application_id = 5000014;
 END;

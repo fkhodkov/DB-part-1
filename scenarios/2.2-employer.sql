@@ -2,15 +2,13 @@
 
 -- Часть II. «Работодатель»
 CREATE SEQUENCE IF NOT EXISTS scenario2_employer_seq;
-SELECT 'waterhouse' || nextval('scenario2_employer_seq') AS login
-  INTO TEMP scenario2_employer_login;
 
 -- 1. Я ищу сотрудников и хочу зарегистрироваться на сайте огненного стартапа
 -- как работодатель, чтобы размещать вакансии и искать резюме.
 EXPLAIN ANALYZE
 INSERT INTO account (login, email, password)
 VALUES (
-  (SELECT login FROM scenario2_employer_login),
+  (SELECT 'waterhouse' || nextval('scenario2_employer_seq')),
   'waterhouse@epiphyte',
   crypt('qwerty', gen_salt('bf')));
 
@@ -19,7 +17,7 @@ VALUES (
 -- посмотреть ответы.
 EXPLAIN ANALYZE
 SELECT account_id FROM account
- WHERE login=(SELECT login FROM scenario2_employer_login)
+ WHERE login='waterhouse1'
    AND password=crypt('qwerty', password);
 
 -- 3. Я авторизовался на сайте огненного стартапа как работодатель и хочу ввести
@@ -31,7 +29,7 @@ WITH created_employer AS (
     INSERT INTO employer_account (account_id, employer_id)
     VALUES (
       (SELECT account_id FROM account
-        WHERE login=(SELECT login FROM scenario2_employer_login)
+        WHERE login='waterhouse1'
           AND password=crypt('qwerty', password)),
       (SELECT employer_id FROM created_employer));
 
@@ -39,17 +37,17 @@ WITH created_employer AS (
 -- работодатель, и хотим разместить вакансию.
 -- 4.1 Узнаем id нашей компании
 EXPLAIN ANALYZE
-SELECT employer_id, title INTO TEMP scenario2_employer
+SELECT employer_id, title
   FROM employer JOIN employer_account USING (employer_id)
  WHERE account_id = (SELECT account_id FROM account
-                      WHERE login=(SELECT login FROM scenario2_employer_login)
+                      WHERE login='waterhouse1'
                         AND password=crypt('qwerty', password));
 -- 4.2 Создадим вакансию
 EXPLAIN ANALYZE
 INSERT INTO vacancy (
   employer_id, title, city_id, salary, experience_years, schedule, vacancy_status)
 VALUES (
-  (SELECT employer_id FROM scenario2_employer),
+  100007,
   'Java-программист',
   1, INT4RANGE(50000, 100000),
   '1-3',
@@ -61,14 +59,14 @@ VALUES (
 -- которые подходят к этой вакансии, чтобы отправить приглашения.
 -- 5.1 Узнаем id нашей вакансии
 EXPLAIN ANALYZE
-SELECT vacancy_id, title INTO TEMP scenario2_vacancy
+SELECT vacancy_id, title
   FROM vacancy
- WHERE employer_id = (SELECT employer_id FROM scenario2_employer);
+ WHERE employer_id = 100007;
 -- 5.2 Найдет подходящие резюме
 EXPLAIN ANALYZE
 WITH my_vacancy AS (
   SELECT title, city_id, schedule, salary, experience_years
-    FROM vacancy WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy))
+    FROM vacancy WHERE vacancy_id = 1000010)
 SELECT resume_id, applicant.name, resume.experience_years, resume.salary
   FROM resume JOIN applicant USING (applicant_id)
  WHERE resume.title = (SELECT title FROM my_vacancy) AND
@@ -82,15 +80,15 @@ SELECT resume_id, applicant.name, resume.experience_years, resume.salary
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (5, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (5, 1000010, 'OPEN')
   RETURNING application_id
-) SELECT application_id INTO TEMP scenario2_first_application
+) SELECT application_id
     FROM created_application;
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый вечер!
 Приглашаем Вас пройти тестовое задание на вакансию Java-программист.
 Ссылка на задание: https://epiphyte/test',
@@ -101,15 +99,15 @@ INSERT INTO message (
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (6, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (6, 1000010, 'OPEN')
   RETURNING application_id
-) SELECT application_id INTO TEMP scenario2_second_application
+) SELECT application_id
     FROM created_application;
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM scenario2_second_application),
+  5000017,
   'Добрый вечер!
 Приглашаем Вас пройти тестовое задание на вакансию Java-программист.
 Ссылка на задание: https://epiphyte/test',
@@ -122,7 +120,7 @@ EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый вечер!
 Вот мое решение тестового задания: https://patrikeevna/reshenie
 С нетерпепием жду вашего отклика',
@@ -135,7 +133,7 @@ INSERT INTO message (
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (1, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (1, 1000010, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -153,14 +151,14 @@ EXPLAIN ANALYZE
 SELECT application_id, resume_id, message.text
   FROM application JOIN resume USING (resume_id)
          JOIN message USING (application_id)
- WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy) AND applicant_to_employer;
+ WHERE vacancy_id = 1000010 AND applicant_to_employer;
 
 -- 8. Мы получили отклик на вакансию, и хочу ответить соискателю
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый день!
 Поздравляем!  Вы приняты!',
   FALSE,
@@ -172,8 +170,8 @@ INSERT INTO message (
 BEGIN;
   EXPLAIN ANALYZE
   UPDATE vacancy SET vacancy_status = 'CLOSED'
-   WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy);
+   WHERE vacancy_id = 1000010;
   EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy);
+   WHERE vacancy_id = 1000010;
 END;

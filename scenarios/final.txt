@@ -1,66 +1,57 @@
 Pager usage is off.
-CREATE SEQUENCE IF NOT EXISTS scenario2_applicant_seq;
-CREATE SEQUENCE
-SELECT 'johndoe' || nextval('scenario2_applicant_seq') AS login
-  INTO TEMP scenario2_applicant_login;
-SELECT 1
 EXPLAIN ANALYZE
 WITH created_account AS (
   INSERT INTO account (login, email, password)
-  VALUES ((SELECT login FROM scenario2_applicant_login),
+  VALUES ((SELECT 'johndoe' || nextval('scenario2_applicant_seq')),
           'johndoe@email',
           crypt('qwerty', gen_salt('bf'))
   ) RETURNING account_id)
     INSERT INTO applicant (name, account_id)
     VALUES ('Джон Доу', (SELECT account_id FROM created_account));
-                                                               QUERY PLAN                                                               
-----------------------------------------------------------------------------------------------------------------------------------------
- Insert on applicant  (cost=23.64..23.66 rows=1 width=226) (actual time=13.458..13.458 rows=0 loops=1)
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Insert on applicant  (cost=0.07..0.08 rows=1 width=226) (actual time=6.644..6.644 rows=0 loops=1)
    CTE created_account
-     ->  Insert on account  (cost=23.60..23.62 rows=1 width=876) (actual time=12.847..12.850 rows=1 loops=1)
+     ->  Insert on account  (cost=0.02..0.04 rows=1 width=876) (actual time=6.277..6.278 rows=1 loops=1)
            InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_applicant_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.011..0.012 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.03 rows=1 width=876) (actual time=12.409..12.410 rows=1 loops=1)
+             ->  Result  (cost=0.00..0.02 rows=1 width=32) (actual time=0.066..0.067 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.03 rows=1 width=876) (actual time=5.971..5.972 rows=1 loops=1)
    InitPlan 3 (returns $3)
-     ->  CTE Scan on created_account  (cost=0.00..0.02 rows=1 width=4) (actual time=12.853..12.857 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.01 rows=1 width=226) (actual time=12.982..12.984 rows=1 loops=1)
- Planning time: 0.818 ms
- Trigger for constraint applicant_account_id_fkey on applicant: time=1.538 calls=1
- Execution time: 16.743 ms
+     ->  CTE Scan on created_account  (cost=0.00..0.02 rows=1 width=4) (actual time=6.283..6.285 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.01 rows=1 width=226) (actual time=6.453..6.453 rows=1 loops=1)
+ Planning time: 0.558 ms
+ Trigger for constraint applicant_account_id_fkey on applicant: time=0.958 calls=1
+ Execution time: 9.133 ms
 (12 rows)
 
 EXPLAIN ANALYZE
 SELECT account_id
   FROM account
- WHERE login=(SELECT login FROM scenario2_applicant_login)
+ WHERE login='johndoe1'
    AND password=crypt('qwerty', password);
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Index Scan using login_idx on account  (cost=24.03..32.05 rows=1 width=4) (actual time=11.587..11.595 rows=1 loops=1)
-   Index Cond: ((login)::text = $0)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=10.749..10.753 rows=1 loops=1)
+   Index Cond: ((login)::text = 'johndoe1'::text)
    Filter: ((password)::text = crypt('qwerty'::text, (password)::text))
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_applicant_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.011..0.012 rows=1 loops=1)
- Planning time: 0.709 ms
- Execution time: 11.663 ms
-(7 rows)
+ Planning time: 0.635 ms
+ Execution time: 10.786 ms
+(5 rows)
 
 EXPLAIN ANALYZE
-SELECT account_id, applicant_id INTO TEMP scenario2_applicant
+SELECT account_id, applicant_id
   FROM applicant JOIN account USING (account_id)
- WHERE login = (SELECT login FROM scenario2_applicant_login);
+ WHERE login = 'johndoe1';
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=24.45..40.50 rows=1 width=8) (actual time=0.065..0.069 rows=1 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_applicant_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.009..0.010 rows=1 loops=1)
-   ->  Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=0.043..0.044 rows=1 loops=1)
-         Index Cond: ((login)::text = $0)
-   ->  Index Scan using applicant_account_idx on applicant  (cost=0.42..8.44 rows=1 width=8) (actual time=0.018..0.020 rows=1 loops=1)
+ Nested Loop  (cost=0.85..16.90 rows=1 width=8) (actual time=0.032..0.034 rows=1 loops=1)
+   ->  Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=0.020..0.020 rows=1 loops=1)
+         Index Cond: ((login)::text = 'johndoe1'::text)
+   ->  Index Scan using applicant_account_idx on applicant  (cost=0.42..8.44 rows=1 width=8) (actual time=0.009..0.010 rows=1 loops=1)
          Index Cond: (account_id = account.account_id)
- Planning time: 0.983 ms
- Execution time: 1.157 ms
-(9 rows)
+ Planning time: 0.733 ms
+ Execution time: 0.069 ms
+(7 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO resume (
@@ -71,42 +62,38 @@ INSERT INTO resume (
   schedule,
   salary
 ) VALUES (
-  (SELECT applicant_id FROM scenario2_applicant),
+  1000007,
   'Архитектор БД',
   1,
   '0-1',
   'FULL_TIME',
   INT4RANGE(50000, NULL)
 );
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
- Insert on resume  (cost=32.60..32.62 rows=1 width=302) (actual time=1.058..1.058 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_applicant  (cost=0.00..32.60 rows=2260 width=4) (actual time=0.008..0.009 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.01 rows=1 width=302) (actual time=0.078..0.079 rows=1 loops=1)
- Planning time: 0.265 ms
- Trigger for constraint resume_applicant_id_fkey: time=0.363 calls=1
- Trigger for constraint resume_city_id_fkey: time=0.615 calls=1
- Execution time: 2.450 ms
-(8 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on resume  (cost=0.00..0.01 rows=1 width=302) (actual time=1.338..1.338 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.01 rows=1 width=302) (actual time=0.066..0.067 rows=1 loops=1)
+ Planning time: 0.114 ms
+ Trigger for constraint resume_applicant_id_fkey: time=0.334 calls=1
+ Trigger for constraint resume_city_id_fkey: time=0.411 calls=1
+ Execution time: 2.486 ms
+(6 rows)
 
 EXPLAIN ANALYZE
-SELECT resume_id, title INTO TEMP scenario2_resume FROM resume
- WHERE applicant_id = (SELECT applicant_id FROM scenario2_applicant);
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Index Scan using resume_applicant_idx on resume  (cost=33.03..41.10 rows=4 width=24) (actual time=0.018..0.019 rows=1 loops=1)
-   Index Cond: (applicant_id = $0)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_applicant  (cost=0.00..32.60 rows=2260 width=4) (actual time=0.006..0.006 rows=1 loops=1)
- Planning time: 0.395 ms
- Execution time: 0.645 ms
-(6 rows)
+SELECT resume_id, title FROM resume
+ WHERE applicant_id = 1000007;
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using resume_applicant_idx on resume  (cost=0.43..8.50 rows=4 width=24) (actual time=0.023..0.137 rows=12 loops=1)
+   Index Cond: (applicant_id = 1000007)
+ Planning time: 0.518 ms
+ Execution time: 0.173 ms
+(4 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO experience (resume_id, employer, job_title, job_description, dates)
 VALUES (
-  (SELECT resume_id FROM scenario2_resume),
+  3000008,
   'Огненный стартап',
   'Архитектор БД',
   'Задачи:
@@ -114,21 +101,19 @@ VALUES (
   * Спроектировать БД, которая будет это приложение обслуживать.',
   DATERANGE('2019-01-01', NULL)
 );
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
- Insert on experience  (cost=13.20..13.21 rows=1 width=508) (actual time=0.176..0.176 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.008..0.008 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.01 rows=1 width=508) (actual time=0.070..0.071 rows=1 loops=1)
- Planning time: 0.157 ms
- Trigger for constraint experience_resume_id_fkey: time=0.320 calls=1
- Execution time: 0.580 ms
-(7 rows)
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Insert on experience  (cost=0.00..0.01 rows=1 width=508) (actual time=0.263..0.263 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.01 rows=1 width=508) (actual time=0.070..0.070 rows=1 loops=1)
+ Planning time: 0.109 ms
+ Trigger for constraint experience_resume_id_fkey: time=0.377 calls=1
+ Execution time: 0.760 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 WITH my_resume AS (
   SELECT title, city_id, schedule, salary, experience_years
-    FROM resume WHERE resume_id = (SELECT resume_id FROM scenario2_resume))
+    FROM resume WHERE resume_id = 3000008)
 SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vacancy.salary
   FROM vacancy JOIN employer USING (employer_id)
  WHERE vacancy.title = (SELECT title FROM my_resume) AND
@@ -139,94 +124,86 @@ SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vaca
        vacancy.salary && (SELECT salary FROM my_resume);
                                                                                                                       QUERY PLAN                                                                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=2148.64..5185.04 rows=8 width=72) (actual time=8.316..8.324 rows=3 loops=1)
+ Nested Loop  (cost=2125.12..5152.51 rows=8 width=73) (actual time=13.617..13.633 rows=3 loops=1)
    CTE my_resume
-     ->  Index Scan using resume_pkey on resume  (cost=13.63..21.65 rows=1 width=46) (actual time=0.025..0.026 rows=1 loops=1)
-           Index Cond: (resume_id = $0)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.006 rows=1 loops=1)
+     ->  Index Scan using resume_pkey on resume  (cost=0.43..8.45 rows=1 width=46) (actual time=0.048..0.049 rows=1 loops=1)
+           Index Cond: (resume_id = 3000008)
+   InitPlan 2 (returns $1)
+     ->  CTE Scan on my_resume  (cost=0.00..0.02 rows=1 width=218) (actual time=0.001..0.001 rows=1 loops=1)
    InitPlan 3 (returns $2)
-     ->  CTE Scan on my_resume  (cost=0.00..0.02 rows=1 width=218) (actual time=0.000..0.000 rows=1 loops=1)
+     ->  CTE Scan on my_resume my_resume_1  (cost=0.00..0.02 rows=1 width=4) (actual time=0.054..0.056 rows=1 loops=1)
    InitPlan 4 (returns $3)
-     ->  CTE Scan on my_resume my_resume_1  (cost=0.00..0.02 rows=1 width=4) (actual time=0.027..0.028 rows=1 loops=1)
+     ->  CTE Scan on my_resume my_resume_2  (cost=0.00..0.02 rows=1 width=4) (actual time=0.001..0.002 rows=1 loops=1)
    InitPlan 5 (returns $4)
-     ->  CTE Scan on my_resume my_resume_2  (cost=0.00..0.02 rows=1 width=4) (actual time=0.000..0.001 rows=1 loops=1)
+     ->  CTE Scan on my_resume my_resume_3  (cost=0.00..0.02 rows=1 width=4) (actual time=0.006..0.007 rows=1 loops=1)
    InitPlan 6 (returns $5)
-     ->  CTE Scan on my_resume my_resume_3  (cost=0.00..0.02 rows=1 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-   InitPlan 7 (returns $6)
-     ->  CTE Scan on my_resume my_resume_4  (cost=0.00..0.02 rows=1 width=32) (actual time=0.003..0.004 rows=1 loops=1)
-   ->  Bitmap Heap Scan on vacancy  (cost=2126.60..5096.81 rows=8 width=46) (actual time=8.260..8.262 rows=3 loops=1)
-         Recheck Cond: (((city_id = $3) AND (experience_years = 'ANY'::experience_years_t) AND (schedule = $4) AND ((title)::text = ($2)::text)) OR ((city_id = $3) AND (experience_years = $5) AND (schedule = $4) AND ((title)::text = ($2)::text)))
-         Filter: (salary && $6)
+     ->  CTE Scan on my_resume my_resume_4  (cost=0.00..0.02 rows=1 width=32) (actual time=0.006..0.007 rows=1 loops=1)
+   ->  Bitmap Heap Scan on vacancy  (cost=2116.28..5077.49 rows=8 width=47) (actual time=13.578..13.583 rows=3 loops=1)
+         Recheck Cond: (((city_id = $2) AND (experience_years = 'ANY'::experience_years_t) AND (schedule = $3) AND ((title)::text = ($1)::text)) OR ((city_id = $2) AND (experience_years = $4) AND (schedule = $3) AND ((title)::text = ($1)::text)))
+         Filter: (salary && $5)
          Heap Blocks: exact=1
-         ->  BitmapOr  (cost=2126.60..2126.60 rows=911 width=0) (actual time=8.220..8.220 rows=0 loops=1)
-               ->  Bitmap Index Scan on vacancy_query_idx  (cost=0.00..1066.05 rows=457 width=0) (actual time=4.037..4.037 rows=1 loops=1)
-                     Index Cond: ((city_id = $3) AND (experience_years = 'ANY'::experience_years_t) AND (schedule = $4) AND ((title)::text = ($2)::text))
-               ->  Bitmap Index Scan on vacancy_query_idx  (cost=0.00..1060.55 rows=455 width=0) (actual time=4.174..4.174 rows=2 loops=1)
-                     Index Cond: ((city_id = $3) AND (experience_years = $5) AND (schedule = $4) AND ((title)::text = ($2)::text))
-   ->  Index Scan using employer_pkey on employer  (cost=0.29..8.31 rows=1 width=34) (actual time=0.018..0.018 rows=1 loops=3)
+         ->  BitmapOr  (cost=2116.28..2116.28 rows=908 width=0) (actual time=13.520..13.521 rows=0 loops=1)
+               ->  Bitmap Index Scan on vacancy_query_idx  (cost=0.00..1055.71 rows=453 width=0) (actual time=7.203..7.203 rows=1 loops=1)
+                     Index Cond: ((city_id = $2) AND (experience_years = 'ANY'::experience_years_t) AND (schedule = $3) AND ((title)::text = ($1)::text))
+               ->  Bitmap Index Scan on vacancy_query_idx  (cost=0.00..1060.56 rows=455 width=0) (actual time=6.312..6.312 rows=2 loops=1)
+                     Index Cond: ((city_id = $2) AND (experience_years = $4) AND (schedule = $3) AND ((title)::text = ($1)::text))
+   ->  Index Scan using employer_pkey on employer  (cost=0.29..8.31 rows=1 width=34) (actual time=0.012..0.012 rows=1 loops=3)
          Index Cond: (employer_id = vacancy.employer_id)
- Planning time: 1.462 ms
- Execution time: 8.501 ms
-(29 rows)
+ Planning time: 2.501 ms
+ Execution time: 14.015 ms
+(27 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 6, 'OPEN')
+  VALUES (3000008, 6, 'OPEN')
          RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM created_application),
+  5000012,
   'Добрый вечер!
   Прошу рассмотреть мою кандидатуру на должно Архитектора БД.',
   TRUE,
   now()
 );
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=13.23..13.25 rows=1 width=49) (actual time=0.684..0.684 rows=0 loops=1)
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.01..0.04 rows=1 width=49) (actual time=0.449..0.449 rows=0 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.354..0.355 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.009..0.010 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.070..0.070 rows=1 loops=1)
-   InitPlan 3 (returns $3)
-     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.357..0.358 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.436..0.436 rows=1 loops=1)
- Planning time: 0.108 ms
- Trigger for constraint message_application_id_fkey on message: time=0.294 calls=1
- Trigger for constraint application_resume_id_fkey on application: time=0.413 calls=1
- Trigger for constraint application_vacancy_id_fkey on application: time=0.365 calls=1
- Execution time: 1.999 ms
-(14 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.464..0.465 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.058..0.059 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.120..0.120 rows=1 loops=1)
+ Planning time: 0.092 ms
+ Trigger for constraint message_application_id_fkey on message: time=0.587 calls=1
+ Trigger for constraint application_resume_id_fkey on application: time=0.421 calls=1
+ Trigger for constraint application_vacancy_id_fkey on application: time=0.482 calls=1
+ Execution time: 2.689 ms
+(10 rows)
 
 EXPLAIN ANALYZE
-SELECT application_id INTO TEMP scenario2_application1
+SELECT application_id
   FROM application
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume) AND
+ WHERE resume_id = 3000008 AND
        vacancy_id = 6;
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Bitmap Heap Scan on application  (cost=22.38..26.40 rows=1 width=4) (actual time=0.032..0.032 rows=1 loops=1)
-   Recheck Cond: ((resume_id = $0) AND (vacancy_id = 6))
-   Heap Blocks: exact=1
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-   ->  BitmapAnd  (cost=9.18..9.18 rows=1 width=0) (actual time=0.028..0.028 rows=0 loops=1)
-         ->  Bitmap Index Scan on application_resume_idx  (cost=0.00..4.46 rows=3 width=0) (actual time=0.016..0.016 rows=1 loops=1)
-               Index Cond: (resume_id = $0)
-         ->  Bitmap Index Scan on application_vacancy_idx  (cost=0.00..4.48 rows=6 width=0) (actual time=0.011..0.011 rows=18 loops=1)
+ Bitmap Heap Scan on application  (cost=9.18..13.20 rows=1 width=4) (actual time=0.075..0.107 rows=12 loops=1)
+   Recheck Cond: ((resume_id = 3000008) AND (vacancy_id = 6))
+   Heap Blocks: exact=3
+   ->  BitmapAnd  (cost=9.18..9.18 rows=1 width=0) (actual time=0.056..0.056 rows=0 loops=1)
+         ->  Bitmap Index Scan on application_resume_idx  (cost=0.00..4.46 rows=3 width=0) (actual time=0.028..0.029 rows=34 loops=1)
+               Index Cond: (resume_id = 3000008)
+         ->  Bitmap Index Scan on application_vacancy_idx  (cost=0.00..4.48 rows=6 width=0) (actual time=0.023..0.023 rows=28 loops=1)
                Index Cond: (vacancy_id = 6)
- Planning time: 0.180 ms
- Execution time: 0.701 ms
-(12 rows)
+ Planning time: 0.275 ms
+ Execution time: 0.188 ms
+(10 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 7, 'OPEN')
+  VALUES (3000008, 7, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -237,28 +214,26 @@ WITH created_application AS (
   TRUE,
   now()
 ) RETURNING application_id;
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=13.23..13.25 rows=1 width=49) (actual time=0.106..0.107 rows=1 loops=1)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.04..0.06 rows=1 width=49) (actual time=0.214..0.215 rows=1 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.064..0.065 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.006..0.007 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.014..0.015 rows=1 loops=1)
-   InitPlan 3 (returns $3)
-     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.066..0.067 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.081..0.082 rows=1 loops=1)
- Planning time: 0.121 ms
- Trigger for constraint message_application_id_fkey on message: time=0.091 calls=1
- Trigger for constraint application_resume_id_fkey on application: time=0.179 calls=1
- Trigger for constraint application_vacancy_id_fkey on application: time=0.135 calls=1
- Execution time: 0.589 ms
-(14 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.081..0.083 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.009..0.010 rows=1 loops=1)
+   InitPlan 2 (returns $2)
+     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.084..0.086 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.111..0.111 rows=1 loops=1)
+ Planning time: 0.117 ms
+ Trigger for constraint message_application_id_fkey on message: time=0.154 calls=1
+ Trigger for constraint application_resume_id_fkey on application: time=0.350 calls=1
+ Trigger for constraint application_vacancy_id_fkey on application: time=0.179 calls=1
+ Execution time: 1.011 ms
+(12 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES ((SELECT resume_id FROM scenario2_resume), 8, 'OPEN')
+  VALUES (3000008, 8, 'OPEN')
          RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -269,50 +244,46 @@ WITH created_application AS (
   TRUE,
   now()
 );
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=13.23..13.25 rows=1 width=49) (actual time=0.112..0.112 rows=0 loops=1)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.04..0.06 rows=1 width=49) (actual time=0.155..0.155 rows=0 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.071..0.072 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.006..0.007 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.014..0.014 rows=1 loops=1)
-   InitPlan 3 (returns $3)
-     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.072..0.073 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.089..0.089 rows=1 loops=1)
- Planning time: 0.114 ms
- Trigger for constraint message_application_id_fkey on message: time=0.051 calls=1
- Trigger for constraint application_resume_id_fkey on application: time=0.149 calls=1
- Trigger for constraint application_vacancy_id_fkey on application: time=0.083 calls=1
- Execution time: 0.464 ms
-(14 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.086..0.087 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.009..0.010 rows=1 loops=1)
+   InitPlan 2 (returns $2)
+     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.089..0.091 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.118..0.119 rows=1 loops=1)
+ Planning time: 0.142 ms
+ Trigger for constraint message_application_id_fkey on message: time=0.152 calls=1
+ Trigger for constraint application_resume_id_fkey on application: time=0.334 calls=1
+ Trigger for constraint application_vacancy_id_fkey on application: time=0.225 calls=1
+ Execution time: 0.980 ms
+(12 rows)
 
 EXPLAIN ANALYZE
-SELECT application_id INTO TEMP scenario2_application2
+SELECT application_id
   FROM application
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume) AND
+ WHERE resume_id = 3000008 AND
        vacancy_id = 8;
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Bitmap Heap Scan on application  (cost=22.38..26.40 rows=1 width=4) (actual time=0.062..0.063 rows=1 loops=1)
-   Recheck Cond: ((resume_id = $0) AND (vacancy_id = 8))
-   Heap Blocks: exact=1
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.036..0.036 rows=1 loops=1)
-   ->  BitmapAnd  (cost=9.18..9.18 rows=1 width=0) (actual time=0.057..0.057 rows=0 loops=1)
-         ->  Bitmap Index Scan on application_resume_idx  (cost=0.00..4.46 rows=3 width=0) (actual time=0.047..0.047 rows=3 loops=1)
-               Index Cond: (resume_id = $0)
-         ->  Bitmap Index Scan on application_vacancy_idx  (cost=0.00..4.48 rows=6 width=0) (actual time=0.009..0.009 rows=17 loops=1)
+ Bitmap Heap Scan on application  (cost=9.18..13.20 rows=1 width=4) (actual time=0.066..0.076 rows=12 loops=1)
+   Recheck Cond: ((resume_id = 3000008) AND (vacancy_id = 8))
+   Heap Blocks: exact=2
+   ->  BitmapAnd  (cost=9.18..9.18 rows=1 width=0) (actual time=0.053..0.053 rows=0 loops=1)
+         ->  Bitmap Index Scan on application_resume_idx  (cost=0.00..4.46 rows=3 width=0) (actual time=0.028..0.028 rows=36 loops=1)
+               Index Cond: (resume_id = 3000008)
+         ->  Bitmap Index Scan on application_vacancy_idx  (cost=0.00..4.48 rows=6 width=0) (actual time=0.021..0.021 rows=28 loops=1)
                Index Cond: (vacancy_id = 8)
- Planning time: 0.124 ms
- Execution time: 0.788 ms
-(12 rows)
+ Planning time: 0.195 ms
+ Execution time: 0.126 ms
+(10 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_application1),
+  5000012,
   'Добрый вечер!
 В дополнение к тому, что указано в вакансии, добавляем:
   * рабочий день составляет 25 часов в сутки,
@@ -322,22 +293,20 @@ INSERT INTO message (
   FALSE,
   now()
 );
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.096..0.097 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application1  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.018..0.018 rows=1 loops=1)
- Planning time: 0.083 ms
- Trigger for constraint message_application_id_fkey: time=0.112 calls=1
- Execution time: 0.246 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.078..0.079 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.020..0.020 rows=1 loops=1)
+ Planning time: 0.040 ms
+ Trigger for constraint message_application_id_fkey: time=0.334 calls=1
+ Execution time: 0.510 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_application2),
+  5000014,
   'Добрый вечер!
 Решите, пожалуйста, тестовое задание.  
 Вы можете скачать его по ссылке:
@@ -345,44 +314,40 @@ https://eprst-invest/testovoe-zadanie',
   FALSE,
   now()
 );
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.042..0.042 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application2  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.004..0.005 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.014..0.015 rows=1 loops=1)
- Planning time: 0.082 ms
- Trigger for constraint message_application_id_fkey: time=0.088 calls=1
- Execution time: 0.156 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.083..0.083 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.019..0.019 rows=1 loops=1)
+ Planning time: 0.031 ms
+ Trigger for constraint message_application_id_fkey: time=0.160 calls=1
+ Execution time: 0.283 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 SELECT application_id, employer.title, vacancy.salary, message.text
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN employer USING (employer_id)
          JOIN message USING (application_id)
- WHERE resume_id = (SELECT resume_id FROM scenario2_resume)
+ WHERE resume_id = 3000008
    AND NOT applicant_to_employer;
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=14.79..81.93 rows=5 width=74) (actual time=0.061..0.082 rows=2 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_resume  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-   ->  Nested Loop  (cost=1.15..42.75 rows=3 width=47) (actual time=0.048..0.061 rows=3 loops=1)
-         ->  Nested Loop  (cost=0.86..41.81 rows=3 width=21) (actual time=0.031..0.038 rows=3 loops=1)
-               ->  Index Scan using application_resume_idx on application  (cost=0.43..16.48 rows=3 width=8) (actual time=0.021..0.022 rows=3 loops=1)
-                     Index Cond: (resume_id = $0)
-               ->  Index Scan using vacancy_pkey on vacancy  (cost=0.42..8.44 rows=1 width=21) (actual time=0.004..0.004 rows=1 loops=3)
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=1.58..68.68 rows=5 width=75) (actual time=0.327..0.897 rows=24 loops=1)
+   ->  Nested Loop  (cost=1.15..42.76 rows=3 width=48) (actual time=0.078..0.507 rows=36 loops=1)
+         ->  Nested Loop  (cost=0.86..41.81 rows=3 width=22) (actual time=0.057..0.309 rows=36 loops=1)
+               ->  Index Scan using application_resume_idx on application  (cost=0.43..16.48 rows=3 width=8) (actual time=0.014..0.045 rows=36 loops=1)
+                     Index Cond: (resume_id = 3000008)
+               ->  Index Scan using vacancy_pkey on vacancy  (cost=0.42..8.44 rows=1 width=22) (actual time=0.006..0.006 rows=1 loops=36)
                      Index Cond: (vacancy_id = application.vacancy_id)
-         ->  Index Scan using employer_pkey on employer  (cost=0.29..0.31 rows=1 width=34) (actual time=0.007..0.007 rows=1 loops=3)
+         ->  Index Scan using employer_pkey on employer  (cost=0.29..0.31 rows=1 width=34) (actual time=0.004..0.004 rows=1 loops=36)
                Index Cond: (employer_id = vacancy.employer_id)
-   ->  Index Scan using message_application_idx on message  (cost=0.43..8.61 rows=5 width=31) (actual time=0.005..0.006 rows=1 loops=3)
+   ->  Index Scan using message_application_idx on message  (cost=0.43..8.59 rows=5 width=31) (actual time=0.006..0.010 rows=1 loops=36)
          Index Cond: (application_id = application.application_id)
          Filter: (NOT applicant_to_employer)
-         Rows Removed by Filter: 1
- Planning time: 1.126 ms
- Execution time: 0.137 ms
-(17 rows)
+         Rows Removed by Filter: 2
+ Planning time: 2.198 ms
+ Execution time: 0.980 ms
+(15 rows)
 
 BEGIN;
 BEGIN
@@ -390,7 +355,7 @@ EXPLAIN ANALYZE
   INSERT INTO message (
     application_id, text, applicant_to_employer, created
   ) VALUES (
-    (SELECT application_id FROM scenario2_application1),
+    5000012,
     'Здравствуйте,
 К сожалению, по итогам длительных размышлений я пришел к выводу,
 что вынужден отказаться от Вашей вакансии.
@@ -398,30 +363,26 @@ EXPLAIN ANALYZE
     TRUE,
     now()
   );
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.045..0.045 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application1  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.003..0.004 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.015..0.015 rows=1 loops=1)
- Planning time: 0.041 ms
- Trigger for constraint message_application_id_fkey: time=0.092 calls=1
- Execution time: 0.162 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.088..0.088 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.017..0.018 rows=1 loops=1)
+ Planning time: 0.032 ms
+ Trigger for constraint message_application_id_fkey: time=0.191 calls=1
+ Execution time: 0.322 ms
+(5 rows)
 
 EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE application_id = (SELECT application_id FROM scenario2_application1);
+   WHERE application_id = 5000012;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Update on application  (cost=35.93..43.95 rows=1 width=22) (actual time=0.039..0.039 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application1  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.003..0.003 rows=1 loops=1)
-   ->  Index Scan using application_pkey on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.011..0.013 rows=1 loops=1)
-         Index Cond: (application_id = $0)
- Planning time: 0.065 ms
- Execution time: 0.064 ms
-(7 rows)
+ Update on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.089..0.089 rows=0 loops=1)
+   ->  Index Scan using application_pkey on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.018..0.019 rows=1 loops=1)
+         Index Cond: (application_id = 5000012)
+ Planning time: 0.127 ms
+ Execution time: 0.144 ms
+(5 rows)
 
 END;
 COMMIT
@@ -431,75 +392,66 @@ EXPLAIN ANALYZE
   INSERT INTO message (
     application_id, text, applicant_to_employer, created
   ) VALUES (
-    (SELECT application_id FROM scenario2_application2),
+    5000014,
     'Здравствуйте,
 Я принимаю Ваше предложение.  С нетерпением жду начала работы!',
     TRUE,
     now()
   );
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.080..0.080 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application2  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.006..0.006 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.022..0.022 rows=1 loops=1)
- Planning time: 0.058 ms
- Trigger for constraint message_application_id_fkey: time=0.062 calls=1
- Execution time: 0.183 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.484..0.484 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.027..0.028 rows=1 loops=1)
+ Planning time: 0.051 ms
+ Trigger for constraint message_application_id_fkey: time=0.159 calls=1
+ Execution time: 0.703 ms
+(5 rows)
 
 EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE application_id = (SELECT application_id FROM scenario2_application2);
+   WHERE application_id = 5000014;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Update on application  (cost=35.93..43.95 rows=1 width=22) (actual time=0.041..0.041 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_application2  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-   ->  Index Scan using application_pkey on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.021..0.022 rows=1 loops=1)
-         Index Cond: (application_id = $0)
- Planning time: 0.103 ms
- Execution time: 0.081 ms
-(7 rows)
+ Update on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.044..0.044 rows=0 loops=1)
+   ->  Index Scan using application_pkey on application  (cost=0.43..8.45 rows=1 width=22) (actual time=0.018..0.020 rows=1 loops=1)
+         Index Cond: (application_id = 5000014)
+ Planning time: 0.140 ms
+ Execution time: 0.089 ms
+(5 rows)
 
 END;
 COMMIT
 Pager usage is off.
 CREATE SEQUENCE IF NOT EXISTS scenario2_employer_seq;
 CREATE SEQUENCE
-SELECT 'waterhouse' || nextval('scenario2_employer_seq') AS login
-  INTO TEMP scenario2_employer_login;
-SELECT 1
 EXPLAIN ANALYZE
 INSERT INTO account (login, email, password)
 VALUES (
-  (SELECT login FROM scenario2_employer_login),
+  (SELECT 'waterhouse' || nextval('scenario2_employer_seq')),
   'waterhouse@epiphyte',
   crypt('qwerty', gen_salt('bf')));
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
- Insert on account  (cost=23.60..23.62 rows=1 width=876) (actual time=6.280..6.280 rows=0 loops=1)
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Insert on account  (cost=0.02..0.04 rows=1 width=876) (actual time=6.115..6.115 rows=0 loops=1)
    InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_employer_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.006..0.007 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.03 rows=1 width=876) (actual time=6.148..6.149 rows=1 loops=1)
- Planning time: 0.172 ms
- Execution time: 6.874 ms
+     ->  Result  (cost=0.00..0.02 rows=1 width=32) (actual time=0.065..0.066 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.03 rows=1 width=876) (actual time=5.988..5.989 rows=1 loops=1)
+ Planning time: 0.214 ms
+ Execution time: 6.801 ms
 (6 rows)
 
 EXPLAIN ANALYZE
 SELECT account_id FROM account
- WHERE login=(SELECT login FROM scenario2_employer_login)
+ WHERE login='waterhouse1'
    AND password=crypt('qwerty', password);
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
- Index Scan using login_idx on account  (cost=24.03..32.05 rows=1 width=4) (actual time=5.784..5.787 rows=1 loops=1)
-   Index Cond: ((login)::text = $0)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=11.462..11.465 rows=1 loops=1)
+   Index Cond: ((login)::text = 'waterhouse1'::text)
    Filter: ((password)::text = crypt('qwerty'::text, (password)::text))
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_employer_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.007..0.008 rows=1 loops=1)
- Planning time: 0.442 ms
- Execution time: 5.828 ms
-(7 rows)
+ Planning time: 0.756 ms
+ Execution time: 11.522 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 WITH created_employer AS (
@@ -508,95 +460,87 @@ WITH created_employer AS (
     INSERT INTO employer_account (account_id, employer_id)
     VALUES (
       (SELECT account_id FROM account
-        WHERE login=(SELECT login FROM scenario2_employer_login)
+        WHERE login='waterhouse1'
           AND password=crypt('qwerty', password)),
       (SELECT employer_id FROM created_employer));
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
- Insert on employer_account  (cost=32.09..32.09 rows=1 width=8) (actual time=5.953..5.953 rows=0 loops=1)
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Insert on employer_account  (cost=8.49..8.50 rows=1 width=8) (actual time=10.794..10.794 rows=0 loops=1)
    CTE created_employer
-     ->  Insert on employer  (cost=0.00..0.01 rows=1 width=222) (actual time=0.121..0.122 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=222) (actual time=0.042..0.043 rows=1 loops=1)
+     ->  Insert on employer  (cost=0.00..0.01 rows=1 width=222) (actual time=0.455..0.459 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=222) (actual time=0.220..0.221 rows=1 loops=1)
    InitPlan 2 (returns $2)
-     ->  CTE Scan on created_employer  (cost=0.00..0.02 rows=1 width=4) (actual time=0.123..0.124 rows=1 loops=1)
-   InitPlan 4 (returns $4)
-     ->  Index Scan using login_idx on account  (cost=24.03..32.05 rows=1 width=4) (actual time=5.703..5.705 rows=1 loops=1)
-           Index Cond: ((login)::text = $3)
+     ->  CTE Scan on created_employer  (cost=0.00..0.02 rows=1 width=4) (actual time=0.460..0.465 rows=1 loops=1)
+   InitPlan 3 (returns $3)
+     ->  Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=10.043..10.050 rows=1 loops=1)
+           Index Cond: ((login)::text = 'waterhouse1'::text)
            Filter: ((password)::text = crypt('qwerty'::text, (password)::text))
-           InitPlan 3 (returns $3)
-             ->  Seq Scan on scenario2_employer_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.005..0.005 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.01 rows=1 width=8) (actual time=5.832..5.832 rows=1 loops=1)
- Planning time: 0.138 ms
- Trigger for constraint employer_account_employer_id_fkey on employer_account: time=0.405 calls=1
- Trigger for constraint employer_account_account_id_fkey on employer_account: time=0.110 calls=1
- Execution time: 6.615 ms
-(17 rows)
+   ->  Result  (cost=0.00..0.01 rows=1 width=8) (actual time=10.527..10.527 rows=1 loops=1)
+ Planning time: 0.221 ms
+ Trigger for constraint employer_account_employer_id_fkey on employer_account: time=0.721 calls=1
+ Trigger for constraint employer_account_account_id_fkey on employer_account: time=0.268 calls=1
+ Execution time: 12.027 ms
+(15 rows)
 
 EXPLAIN ANALYZE
-SELECT employer_id, title INTO TEMP scenario2_employer
+SELECT employer_id, title
   FROM employer JOIN employer_account USING (employer_id)
  WHERE account_id = (SELECT account_id FROM account
-                      WHERE login=(SELECT login FROM scenario2_employer_login)
+                      WHERE login='waterhouse1'
                         AND password=crypt('qwerty', password));
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=32.34..1729.31 rows=1 width=34) (actual time=33.275..33.276 rows=1 loops=1)
-   InitPlan 2 (returns $1)
-     ->  Index Scan using login_idx on account  (cost=24.03..32.05 rows=1 width=4) (actual time=5.735..5.737 rows=1 loops=1)
-           Index Cond: ((login)::text = $0)
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=8.74..1704.56 rows=1 width=34) (actual time=41.129..41.175 rows=12 loops=1)
+   InitPlan 1 (returns $0)
+     ->  Index Scan using login_idx on account  (cost=0.43..8.45 rows=1 width=4) (actual time=11.281..11.285 rows=1 loops=1)
+           Index Cond: ((login)::text = 'waterhouse1'::text)
            Filter: ((password)::text = crypt('qwerty'::text, (password)::text))
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_employer_login  (cost=0.00..23.60 rows=1360 width=32) (actual time=0.004..0.004 rows=1 loops=1)
-   ->  Seq Scan on employer_account  (cost=0.00..1688.95 rows=1 width=4) (actual time=33.251..33.252 rows=1 loops=1)
-         Filter: (account_id = $1)
+   ->  Seq Scan on employer_account  (cost=0.00..1687.80 rows=1 width=4) (actual time=41.098..41.106 rows=12 loops=1)
+         Filter: (account_id = $0)
          Rows Removed by Filter: 100021
-   ->  Index Scan using employer_pkey on employer  (cost=0.29..8.31 rows=1 width=34) (actual time=0.017..0.017 rows=1 loops=1)
+   ->  Index Scan using employer_pkey on employer  (cost=0.29..8.31 rows=1 width=34) (actual time=0.004..0.004 rows=1 loops=12)
          Index Cond: (employer_id = employer_account.employer_id)
- Planning time: 1.685 ms
- Execution time: 34.017 ms
-(14 rows)
+ Planning time: 1.097 ms
+ Execution time: 41.252 ms
+(12 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO vacancy (
   employer_id, title, city_id, salary, experience_years, schedule, vacancy_status)
 VALUES (
-  (SELECT employer_id FROM scenario2_employer),
+  100007,
   'Java-программист',
   1, INT4RANGE(50000, 100000),
   '1-3',
   'FULL_TIME',
   'OPEN'
 );
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
- Insert on vacancy  (cost=13.20..13.21 rows=1 width=306) (actual time=0.581..0.581 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_employer  (cost=0.00..13.20 rows=320 width=4) (actual time=0.007..0.007 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.01 rows=1 width=306) (actual time=0.066..0.067 rows=1 loops=1)
- Planning time: 0.167 ms
- Trigger for constraint vacancy_employer_id_fkey: time=0.199 calls=1
- Trigger for constraint vacancy_city_id_fkey: time=0.372 calls=1
- Execution time: 1.383 ms
-(8 rows)
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Insert on vacancy  (cost=0.00..0.01 rows=1 width=306) (actual time=0.715..0.715 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.01 rows=1 width=306) (actual time=0.069..0.069 rows=1 loops=1)
+ Planning time: 0.101 ms
+ Trigger for constraint vacancy_employer_id_fkey: time=0.253 calls=1
+ Trigger for constraint vacancy_city_id_fkey: time=0.281 calls=1
+ Execution time: 1.553 ms
+(6 rows)
 
 EXPLAIN ANALYZE
-SELECT vacancy_id, title INTO TEMP scenario2_vacancy
+SELECT vacancy_id, title
   FROM vacancy
- WHERE employer_id = (SELECT employer_id FROM scenario2_employer);
-                                                            QUERY PLAN                                                            
-----------------------------------------------------------------------------------------------------------------------------------
- Index Scan using vacancy_employer_idx on vacancy  (cost=13.62..21.81 rows=10 width=25) (actual time=0.016..0.017 rows=1 loops=1)
-   Index Cond: (employer_id = $0)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_employer  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.006 rows=1 loops=1)
- Planning time: 0.152 ms
- Execution time: 0.586 ms
-(6 rows)
+ WHERE employer_id = 100007;
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using vacancy_employer_idx on vacancy  (cost=0.42..8.61 rows=10 width=25) (actual time=0.010..0.038 rows=12 loops=1)
+   Index Cond: (employer_id = 100007)
+ Planning time: 0.137 ms
+ Execution time: 0.051 ms
+(4 rows)
 
 EXPLAIN ANALYZE
 WITH my_vacancy AS (
   SELECT title, city_id, schedule, salary, experience_years
-    FROM vacancy WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy))
+    FROM vacancy WHERE vacancy_id = 1000010)
 SELECT resume_id, applicant.name, resume.experience_years, resume.salary
   FROM resume JOIN applicant USING (applicant_id)
  WHERE resume.title = (SELECT title FROM my_vacancy) AND
@@ -606,146 +550,134 @@ SELECT resume_id, applicant.name, resume.experience_years, resume.salary
        resume.salary && (SELECT salary FROM my_vacancy);
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=3867.77..22082.99 rows=63 width=49) (actual time=0.090..0.095 rows=2 loops=1)
+ Nested Loop  (cost=3854.57..22069.79 rows=63 width=49) (actual time=0.304..0.309 rows=2 loops=1)
    CTE my_vacancy
-     ->  Index Scan using vacancy_pkey on vacancy  (cost=13.62..21.64 rows=1 width=46) (actual time=0.019..0.019 rows=1 loops=1)
-           Index Cond: (vacancy_id = $0)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.005 rows=1 loops=1)
-   InitPlan 3 (returns $2)
+     ->  Index Scan using vacancy_pkey on vacancy  (cost=0.42..8.44 rows=1 width=47) (actual time=0.013..0.014 rows=1 loops=1)
+           Index Cond: (vacancy_id = 1000010)
+   InitPlan 2 (returns $1)
      ->  CTE Scan on my_vacancy  (cost=0.00..0.02 rows=1 width=218) (actual time=0.000..0.000 rows=1 loops=1)
+   InitPlan 3 (returns $2)
+     ->  CTE Scan on my_vacancy my_vacancy_1  (cost=0.00..0.02 rows=1 width=4) (actual time=0.015..0.016 rows=1 loops=1)
    InitPlan 4 (returns $3)
-     ->  CTE Scan on my_vacancy my_vacancy_1  (cost=0.00..0.02 rows=1 width=4) (actual time=0.021..0.022 rows=1 loops=1)
+     ->  CTE Scan on my_vacancy my_vacancy_2  (cost=0.00..0.02 rows=1 width=4) (actual time=0.000..0.000 rows=1 loops=1)
    InitPlan 5 (returns $4)
-     ->  CTE Scan on my_vacancy my_vacancy_2  (cost=0.00..0.02 rows=1 width=4) (actual time=0.000..0.001 rows=1 loops=1)
+     ->  CTE Scan on my_vacancy my_vacancy_3  (cost=0.00..0.02 rows=1 width=4) (actual time=0.001..0.001 rows=1 loops=1)
    InitPlan 6 (returns $5)
-     ->  CTE Scan on my_vacancy my_vacancy_3  (cost=0.00..0.02 rows=1 width=4) (actual time=0.000..0.001 rows=1 loops=1)
-   InitPlan 7 (returns $6)
-     ->  CTE Scan on my_vacancy my_vacancy_4  (cost=0.00..0.02 rows=1 width=32) (actual time=0.000..0.000 rows=1 loops=1)
-   ->  Bitmap Heap Scan on resume  (cost=3845.60..21529.37 rows=63 width=26) (actual time=0.079..0.080 rows=2 loops=1)
-         Recheck Cond: ((city_id = $3) AND (experience_years = $5) AND (schedule = $4) AND ((title)::text = ($2)::text))
-         Filter: (salary && $6)
+     ->  CTE Scan on my_vacancy my_vacancy_4  (cost=0.00..0.02 rows=1 width=32) (actual time=0.001..0.001 rows=1 loops=1)
+   ->  Bitmap Heap Scan on resume  (cost=3845.60..21529.37 rows=63 width=26) (actual time=0.291..0.293 rows=2 loops=1)
+         Recheck Cond: ((city_id = $2) AND (experience_years = $4) AND (schedule = $3) AND ((title)::text = ($1)::text))
+         Filter: (salary && $5)
          Heap Blocks: exact=1
-         ->  Bitmap Index Scan on resume_query_idx  (cost=0.00..3845.58 rows=6250 width=0) (actual time=0.071..0.071 rows=2 loops=1)
-               Index Cond: ((city_id = $3) AND (experience_years = $5) AND (schedule = $4) AND ((title)::text = ($2)::text))
+         ->  Bitmap Index Scan on resume_query_idx  (cost=0.00..3845.58 rows=6250 width=0) (actual time=0.276..0.276 rows=2 loops=1)
+               Index Cond: ((city_id = $2) AND (experience_years = $4) AND (schedule = $3) AND ((title)::text = ($1)::text))
    ->  Index Scan using applicant_pkey on applicant  (cost=0.42..8.44 rows=1 width=31) (actual time=0.006..0.006 rows=1 loops=2)
          Index Cond: (applicant_id = resume.applicant_id)
- Planning time: 1.017 ms
- Execution time: 0.207 ms
-(26 rows)
+ Planning time: 0.987 ms
+ Execution time: 0.417 ms
+(24 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (5, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (5, 1000010, 'OPEN')
   RETURNING application_id
-) SELECT application_id INTO TEMP scenario2_first_application
+) SELECT application_id
     FROM created_application;
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
- CTE Scan on created_application  (cost=13.21..13.23 rows=1 width=4) (actual time=0.145..0.146 rows=1 loops=1)
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ CTE Scan on created_application  (cost=0.01..0.04 rows=1 width=4) (actual time=0.155..0.156 rows=1 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.143..0.144 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.004..0.004 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.044..0.045 rows=1 loops=1)
- Planning time: 0.044 ms
- Trigger for constraint application_resume_id_fkey: time=0.225 calls=1
- Trigger for constraint application_vacancy_id_fkey: time=0.125 calls=1
- Execution time: 0.964 ms
-(10 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.154..0.154 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.034..0.035 rows=1 loops=1)
+ Planning time: 0.030 ms
+ Trigger for constraint application_resume_id_fkey: time=0.212 calls=1
+ Trigger for constraint application_vacancy_id_fkey: time=0.206 calls=1
+ Execution time: 0.654 ms
+(8 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый вечер!
 Приглашаем Вас пройти тестовое задание на вакансию Java-программист.
 Ссылка на задание: https://epiphyte/test',
   FALSE,
   now()
 );
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.112..0.112 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_first_application  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.004..0.004 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.040..0.040 rows=1 loops=1)
- Planning time: 0.051 ms
- Trigger for constraint message_application_id_fkey: time=0.223 calls=1
- Execution time: 0.399 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.181..0.181 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.064..0.065 rows=1 loops=1)
+ Planning time: 0.033 ms
+ Trigger for constraint message_application_id_fkey: time=0.408 calls=1
+ Execution time: 0.711 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (6, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (6, 1000010, 'OPEN')
   RETURNING application_id
-) SELECT application_id INTO TEMP scenario2_second_application
+) SELECT application_id
     FROM created_application;
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
- CTE Scan on created_application  (cost=13.21..13.23 rows=1 width=4) (actual time=0.047..0.048 rows=1 loops=1)
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ CTE Scan on created_application  (cost=0.01..0.04 rows=1 width=4) (actual time=0.091..0.093 rows=1 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.045..0.046 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.005..0.006 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.015..0.015 rows=1 loops=1)
- Planning time: 0.044 ms
- Trigger for constraint application_resume_id_fkey: time=0.108 calls=1
- Trigger for constraint application_vacancy_id_fkey: time=0.070 calls=1
- Execution time: 0.755 ms
-(10 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.089..0.090 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.017..0.017 rows=1 loops=1)
+ Planning time: 0.073 ms
+ Trigger for constraint application_resume_id_fkey: time=0.241 calls=1
+ Trigger for constraint application_vacancy_id_fkey: time=0.151 calls=1
+ Execution time: 0.551 ms
+(8 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES (
-  (SELECT application_id FROM scenario2_second_application),
+  5000017,
   'Добрый вечер!
 Приглашаем Вас пройти тестовое задание на вакансию Java-программист.
 Ссылка на задание: https://epiphyte/test',
   FALSE,
   now()
 );
-                                                            QUERY PLAN                                                            
-----------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.036..0.036 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_second_application  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.003..0.004 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.013..0.013 rows=1 loops=1)
- Planning time: 0.061 ms
- Trigger for constraint message_application_id_fkey: time=0.076 calls=1
- Execution time: 0.136 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.073..0.073 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.019..0.020 rows=1 loops=1)
+ Planning time: 0.032 ms
+ Trigger for constraint message_application_id_fkey: time=0.165 calls=1
+ Execution time: 0.278 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый вечер!
 Вот мое решение тестового задания: https://patrikeevna/reshenie
 С нетерпепием жду вашего отклика',
   TRUE,
   now()
 );
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.035..0.035 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_first_application  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.003..0.004 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.012..0.012 rows=1 loops=1)
- Planning time: 0.032 ms
- Trigger for constraint message_application_id_fkey: time=0.089 calls=1
- Execution time: 0.147 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.244..0.244 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.014..0.015 rows=1 loops=1)
+ Planning time: 0.028 ms
+ Trigger for constraint message_application_id_fkey: time=0.165 calls=1
+ Execution time: 0.447 ms
+(5 rows)
 
 EXPLAIN ANALYZE
 WITH created_application AS (
   INSERT INTO application (resume_id, vacancy_id, application_status)
-  VALUES (1, (SELECT vacancy_id FROM scenario2_vacancy), 'OPEN')
+  VALUES (1, 1000010, 'OPEN')
   RETURNING application_id
 ) INSERT INTO message (
   application_id, text, applicant_to_employer, created
@@ -756,98 +688,88 @@ WITH created_application AS (
   TRUE,
   now()
 );
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=13.23..13.25 rows=1 width=49) (actual time=0.052..0.053 rows=0 loops=1)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.04..0.06 rows=1 width=49) (actual time=0.099..0.099 rows=0 loops=1)
    CTE created_application
-     ->  Insert on application  (cost=13.20..13.21 rows=1 width=16) (actual time=0.033..0.033 rows=1 loops=1)
-           InitPlan 1 (returns $0)
-             ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.003..0.004 rows=1 loops=1)
-           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.008..0.008 rows=1 loops=1)
-   InitPlan 3 (returns $3)
-     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.034..0.035 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.042..0.042 rows=1 loops=1)
- Planning time: 0.055 ms
- Trigger for constraint message_application_id_fkey on message: time=0.045 calls=1
- Trigger for constraint application_resume_id_fkey on application: time=0.096 calls=1
- Trigger for constraint application_vacancy_id_fkey on application: time=0.079 calls=1
- Execution time: 0.313 ms
-(14 rows)
+     ->  Insert on application  (cost=0.00..0.01 rows=1 width=16) (actual time=0.058..0.059 rows=1 loops=1)
+           ->  Result  (cost=0.00..0.01 rows=1 width=16) (actual time=0.006..0.007 rows=1 loops=1)
+   InitPlan 2 (returns $2)
+     ->  CTE Scan on created_application  (cost=0.00..0.02 rows=1 width=4) (actual time=0.060..0.062 rows=1 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.076..0.076 rows=1 loops=1)
+ Planning time: 0.083 ms
+ Trigger for constraint message_application_id_fkey on message: time=0.093 calls=1
+ Trigger for constraint application_resume_id_fkey on application: time=0.232 calls=1
+ Trigger for constraint application_vacancy_id_fkey on application: time=0.147 calls=1
+ Execution time: 0.642 ms
+(12 rows)
 
 EXPLAIN ANALYZE
 SELECT application_id, resume_id, message.text
   FROM application JOIN resume USING (resume_id)
          JOIN message USING (application_id)
- WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy) AND applicant_to_employer;
-                                                                    QUERY PLAN                                                                    
---------------------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=14.50..120.38 rows=9 width=35) (actual time=0.033..0.052 rows=2 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.006..0.006 rows=1 loops=1)
-   ->  Nested Loop  (cost=0.86..55.22 rows=6 width=8) (actual time=0.026..0.035 rows=3 loops=1)
-         ->  Index Scan using application_vacancy_idx on application  (cost=0.43..28.54 rows=6 width=8) (actual time=0.016..0.017 rows=3 loops=1)
-               Index Cond: (vacancy_id = $0)
-         ->  Index Only Scan using resume_pkey on resume  (cost=0.43..4.45 rows=1 width=4) (actual time=0.005..0.005 rows=1 loops=3)
+ WHERE vacancy_id = 1000010 AND applicant_to_employer;
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=1.30..107.08 rows=9 width=35) (actual time=0.051..0.439 rows=24 loops=1)
+   ->  Nested Loop  (cost=0.86..55.22 rows=6 width=8) (actual time=0.025..0.196 rows=36 loops=1)
+         ->  Index Scan using application_vacancy_idx on application  (cost=0.43..28.54 rows=6 width=8) (actual time=0.014..0.039 rows=36 loops=1)
+               Index Cond: (vacancy_id = 1000010)
+         ->  Index Only Scan using resume_pkey on resume  (cost=0.43..4.45 rows=1 width=4) (actual time=0.003..0.003 rows=1 loops=36)
                Index Cond: (resume_id = application.resume_id)
                Heap Fetches: 0
-   ->  Index Scan using message_application_idx on message  (cost=0.43..8.61 rows=5 width=31) (actual time=0.004..0.005 rows=1 loops=3)
+   ->  Index Scan using message_application_idx on message  (cost=0.43..8.59 rows=5 width=31) (actual time=0.005..0.006 rows=1 loops=36)
          Index Cond: (application_id = application.application_id)
          Filter: applicant_to_employer
          Rows Removed by Filter: 1
- Planning time: 0.615 ms
- Execution time: 0.095 ms
-(15 rows)
+ Planning time: 1.030 ms
+ Execution time: 0.495 ms
+(13 rows)
 
 EXPLAIN ANALYZE
 INSERT INTO message (
   application_id, text, applicant_to_employer, created
 ) VALUES  (
-  (SELECT application_id FROM scenario2_first_application),
+  5000015,
   'Добрый день!
 Поздравляем!  Вы приняты!',
   FALSE,
   now()
 );
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
- Insert on message  (cost=35.50..35.52 rows=1 width=49) (actual time=0.032..0.032 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_first_application  (cost=0.00..35.50 rows=2550 width=4) (actual time=0.003..0.003 rows=1 loops=1)
-   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.011..0.012 rows=1 loops=1)
- Planning time: 0.032 ms
- Trigger for constraint message_application_id_fkey: time=0.074 calls=1
- Execution time: 0.128 ms
-(7 rows)
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Insert on message  (cost=0.00..0.02 rows=1 width=49) (actual time=0.052..0.052 rows=0 loops=1)
+   ->  Result  (cost=0.00..0.02 rows=1 width=49) (actual time=0.013..0.014 rows=1 loops=1)
+ Planning time: 0.029 ms
+ Trigger for constraint message_application_id_fkey: time=0.158 calls=1
+ Execution time: 0.292 ms
+(5 rows)
 
 BEGIN;
 BEGIN
 EXPLAIN ANALYZE
   UPDATE vacancy SET vacancy_status = 'CLOSED'
-   WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy);
+   WHERE vacancy_id = 1000010;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Update on vacancy  (cost=13.62..21.64 rows=1 width=108) (actual time=0.042..0.042 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.004..0.004 rows=1 loops=1)
-   ->  Index Scan using vacancy_pkey on vacancy  (cost=0.42..8.44 rows=1 width=108) (actual time=0.014..0.014 rows=1 loops=1)
-         Index Cond: (vacancy_id = $0)
- Planning time: 0.110 ms
- Execution time: 0.076 ms
-(7 rows)
+ Update on vacancy  (cost=0.42..8.44 rows=1 width=109) (actual time=0.073..0.073 rows=0 loops=1)
+   ->  Index Scan using vacancy_pkey on vacancy  (cost=0.42..8.44 rows=1 width=109) (actual time=0.016..0.018 rows=1 loops=1)
+         Index Cond: (vacancy_id = 1000010)
+ Planning time: 0.153 ms
+ Execution time: 0.123 ms
+(5 rows)
 
 EXPLAIN ANALYZE
   UPDATE application SET application_status = 'CLOSED'
-   WHERE vacancy_id = (SELECT vacancy_id FROM scenario2_vacancy);
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Update on application  (cost=13.63..41.74 rows=6 width=22) (actual time=0.043..0.043 rows=0 loops=1)
-   InitPlan 1 (returns $0)
-     ->  Seq Scan on scenario2_vacancy  (cost=0.00..13.20 rows=320 width=4) (actual time=0.004..0.005 rows=1 loops=1)
-   ->  Index Scan using application_vacancy_idx on application  (cost=0.43..28.54 rows=6 width=22) (actual time=0.016..0.018 rows=3 loops=1)
-         Index Cond: (vacancy_id = $0)
- Planning time: 0.073 ms
- Execution time: 0.073 ms
-(7 rows)
+   WHERE vacancy_id = 1000010;
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Update on application  (cost=0.43..28.54 rows=6 width=22) (actual time=0.261..0.261 rows=0 loops=1)
+   ->  Index Scan using application_vacancy_idx on application  (cost=0.43..28.54 rows=6 width=22) (actual time=0.014..0.042 rows=36 loops=1)
+         Index Cond: (vacancy_id = 1000010)
+ Planning time: 0.089 ms
+ Execution time: 0.299 ms
+(5 rows)
 
 END;
 COMMIT
