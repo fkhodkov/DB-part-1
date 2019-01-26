@@ -36,14 +36,16 @@ INSERT INTO resume (
   city_id,
   experience_years,
   schedule,
-  salary
+  salary_min,
+  salary_max
 ) VALUES (
   1000007,
   'Архитектор БД',
   1,
   '0-1',
   'FULL_TIME',
-  INT4RANGE(50000, NULL)
+  50000,
+  NULL
 );
 -- 3.3 Узнаем id нашего резюме
 EXPLAIN ANALYZE
@@ -66,16 +68,20 @@ VALUES (
 -- этому резюме.
 EXPLAIN ANALYZE
 WITH my_resume AS (
-  SELECT title, city_id, schedule, salary, experience_years
+  SELECT title, city_id, schedule, salary_min, salary_max, experience_years
     FROM resume WHERE resume_id = 3000008)
-SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years, vacancy.salary
+  SELECT vacancy_id, vacancy.title, employer.title, vacancy.experience_years,
+         vacancy.salary_min, vacancy.salary_max
   FROM vacancy JOIN employer USING (employer_id)
  WHERE vacancy.title = (SELECT title FROM my_resume) AND
        vacancy.city_id = (SELECT city_id FROM my_resume) AND
        vacancy.schedule = (SELECT schedule FROM my_resume) AND
        (vacancy.experience_years = 'ANY' OR
         vacancy.experience_years = (SELECT experience_years FROM my_resume)) AND
-       vacancy.salary && (SELECT salary FROM my_resume);
+        (vacancy.salary_min IS NULL OR (SELECT salary_max FROM my_resume) IS NULL OR
+         vacancy.salary_min <= (SELECT salary_max FROM my_resume)) AND 
+        (vacancy.salary_max IS NULL OR (SELECT salary_min FROM my_resume) IS NULL OR
+         vacancy.salary_max >= (SELECT salary_min FROM my_resume));
 
 -- 5. Я нашел нужные вакансии и хочу отправить свое резюме и сообщение
 -- работодателям, чтобы начать переписку.
@@ -168,7 +174,7 @@ https://eprst-invest/testovoe-zadanie',
 -- 6. Я соискатель, который отправил резюме работодателями, и хочу посмотреть,
 -- на какие их них уже пришли ответы
 EXPLAIN ANALYZE
-SELECT application_id, employer.title, vacancy.salary, message.text
+SELECT application_id, employer.title, vacancy.salary_min, vacancy.salary_max, message.text
   FROM application JOIN vacancy USING (vacancy_id)
          JOIN employer USING (employer_id)
          JOIN message USING (application_id)

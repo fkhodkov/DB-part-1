@@ -6,12 +6,12 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS message_application_idx ON message(appli
 CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_gin_idx
     ON vacancy
  USING GIN(vacancy_id, employer_id, title, city_id, experience_years,
-           schedule, description, vacancy_status);
+           salary_min, salary_max, schedule, description, vacancy_status);
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_gin_idx
     ON resume
  USING GIN(resume_id, applicant_id, title, city_id, experience_years,
-           schedule, text);
+           salary_min, salary_max, schedule, text);
 
 
 VACUUM ANALYZE applicant;

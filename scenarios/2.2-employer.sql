@@ -45,11 +45,12 @@ SELECT employer_id, title
 -- 4.2 Создадим вакансию
 EXPLAIN ANALYZE
 INSERT INTO vacancy (
-  employer_id, title, city_id, salary, experience_years, schedule, vacancy_status)
+  employer_id, title, city_id, salary_min, salary_max, experience_years, schedule, vacancy_status)
 VALUES (
   100007,
   'Java-программист',
-  1, INT4RANGE(50000, 100000),
+  1,
+  50000, 100000,
   '1-3',
   'FULL_TIME',
   'OPEN'
@@ -65,15 +66,18 @@ SELECT vacancy_id, title
 -- 5.2 Найдет подходящие резюме
 EXPLAIN ANALYZE
 WITH my_vacancy AS (
-  SELECT title, city_id, schedule, salary, experience_years
+  SELECT title, city_id, schedule, salary_min, salary_max, experience_years
     FROM vacancy WHERE vacancy_id = 1000010)
-SELECT resume_id, applicant.name, resume.experience_years, resume.salary
+SELECT resume_id, applicant.name, resume.experience_years, resume.salary_min, resume.salary_max
   FROM resume JOIN applicant USING (applicant_id)
  WHERE resume.title = (SELECT title FROM my_vacancy) AND
        resume.city_id = (SELECT city_id FROM my_vacancy) AND
        resume.schedule = (SELECT schedule FROM my_vacancy) AND
        resume.experience_years = (SELECT experience_years FROM my_vacancy) AND
-       resume.salary && (SELECT salary FROM my_vacancy);
+       (resume.salary_min IS NULL OR (SELECT salary_max FROM my_vacancy) IS NULL OR
+         resume.salary_min <= (SELECT salary_max FROM my_vacancy)) AND 
+        (resume.salary_max IS NULL OR (SELECT salary_min FROM my_vacancy) IS NULL OR
+         resume.salary_max >= (SELECT salary_min FROM my_vacancy));
 
 -- 6. Мы нашли подходящие резюме и хотим отправить приглашения
 -- 6.1 Отправляем приглашения
