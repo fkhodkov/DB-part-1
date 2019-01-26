@@ -2,23 +2,17 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS applicant_account_idx ON applicant(accou
 CREATE INDEX CONCURRENTLY IF NOT EXISTS application_resume_idx ON application(resume_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS application_vacancy_idx ON application(vacancy_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS message_application_idx ON message(application_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_applicant_idx ON resume(applicant_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_city_idx ON resume(city_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_experience_idx ON resume(experience_years);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_salary_idx ON resume(salary);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_schedule_idx ON resume(schedule);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_title_idx ON resume(title);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_city_idx ON vacancy(city_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_employer_idx ON vacancy(employer_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_experience_idx ON vacancy(experience_years);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_salary_idx ON vacancy(salary);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_schedule_idx ON vacancy(schedule);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_title_idx ON vacancy(title);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_query_idx
-    ON resume(city_id, experience_years, salary, schedule, title);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_query_idx
-    ON vacancy(city_id, experience_years, salary, schedule, title);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS vacancy_gin_idx
+    ON vacancy
+ USING GIN(vacancy_id, employer_id, title, city_id, experience_years,
+           schedule, description, vacancy_status);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS resume_gin_idx
+    ON resume
+ USING GIN(resume_id, applicant_id, title, city_id, experience_years,
+           schedule, text);
+
 
 VACUUM ANALYZE applicant;
 VACUUM ANALYZE application;
